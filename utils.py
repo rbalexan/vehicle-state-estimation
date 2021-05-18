@@ -204,13 +204,16 @@ def get_jacobian(Ux_0, Uy_0, r_0, delta_0, Fxf_0, Fxr_0, veh, ftire, rtire, dt):
 
 	return J_A, J_B
 
-def EKF_step(X_0, P_0, Y, delta, Fx, kappa, dt, veh, ftire, rtire, mu_0, Sigma_0, A, C, Q, R):
+def EKF_step(X_0, P_0, Y, delta, Fx, Fxf, Fxr, kappa, dt, veh, ftire, rtire, Sigma_0, C, Q, R):
+
+	#Calculate linearized A and B matrices
+	J_A, J_B = get_jacobian(X_0[0][0], X_0[1][0], X_0[2][0], delta, Fxf, Fxr, veh, ftire, rtire, dt)
 
 	#Predict
-	mu_list = [mu_0[0][0], mu_0[1][0], mu_0[2][0]]
+	mu_list = [X_0[0][0], X_0[1][0], X_0[2][0]]
 	X_1, P_1, delta, Fxf, Fxr = simulate_step(mu_list, P_0, delta, Fx, kappa, dt, veh, ftire, rtire)
 	mu_t01 = np.array([X_1]).T
-	Sigma_t01 = A.dot(Sigma_0).dot(A.T)+Q
+	Sigma_t01 = J_A.dot(Sigma_0).dot(J_A.T)+Q
 
 	#Update
 	mu_1 = mu_t01 + Sigma_t01.dot(C.T).dot(np.linalg.inv(C.dot(Sigma_t01).dot(C.T)+R)).dot(Y-C.dot(mu_t01))
