@@ -2,7 +2,8 @@ import numpy as np
 from load_vehicle import *
 from utils import *
 from types import SimpleNamespace
-from os.path import dirname, join as pjoin
+from os.path import dirname, abspath, join as pjoin
+import KalmanFilters
 import scipy.io as sio
 import scipy.interpolate
 import matplotlib.pyplot as plt
@@ -22,7 +23,7 @@ t_end = 30
 t_ = np.linspace(0,t_end, int((t_end/dt)+1))
 
 #Get Map
-mat_fname = pjoin("C:/Users/tpweb/iCloudDrive", 'project_path.mat')
+mat_fname = pjoin(dirname(abspath(__file__)), 'project_path.mat')
 mat_contents = sio.loadmat(mat_fname)
 path = SimpleNamespace(**mat_contents)
 kappa_interp =  scipy.interpolate.interp1d(path.s_m.squeeze(), path.k_1pm.squeeze())
@@ -45,6 +46,8 @@ delta_ = []
 Fxf_ = []
 Fxr_ = []
 kappa_ = []
+Y_ = []
+Fx_ = []
 
 #Temporary for testing jacobian
 Ux_lin_ = []
@@ -65,6 +68,9 @@ dpsi_.append(0)
 delta_.append(0)
 Fxf_.append(0)
 Fxr_.append(0)
+Fx_.append(0)
+kappa_.append(0)
+
 
 r_lin_.append(0)
 Ux_lin_.append(1)
@@ -72,6 +78,8 @@ Uy_lin_.append(0)
 
 Sigma.append(np.diag([.1, .1, .1])) 
 mu.append(np.array([[1,.1,.1]]).T)
+
+kf = KalmanFilters.KalmanFilters(C, Q, R, dt, veh, ftire, rtire, "EKF")
 
 
 #Simulation Loop
@@ -84,6 +92,8 @@ for i in range(len(t_)-1):
 	P_0 = [s_[i], e_[i], dpsi_[i]] #Path state
 
 	#Get control commands (lookahead controller)
+	# this is using the true state as we want a perfect controller
+	# tracking error doesn't matter because we are just looking at estimator performance.
 	delta, Fx = controller(X_0, P_0, veh, ftire, rtire, path)
 
 	#Ground truth state (from nonlinear simulation)
@@ -91,17 +101,13 @@ for i in range(len(t_)-1):
 	W = np.linalg.cholesky(Q).dot(np.random.randn(3,1))
 
 	Y = C.dot(np.array([X_1]).T+W) + np.linalg.cholesky(R).dot(np.random.randn(2,1))
-	
-	#Calculate linearized A and B matrices
-	J_A, J_B = get_jacobian(Ux_[i], Uy_[i], r_[i], delta, Fxf, Fxr, veh, ftire, rtire, dt)
 
 	#Append new states/inputs
 	Ux_.append(X_1[0]+W[0][0]); Uy_.append(X_1[1]+W[1][0]); r_.append(X_1[2]+W[2][0]); s_.append(P_1[0]); e_.append(P_1[1]); dpsi_.append(P_1[2]); delta_.append(delta); Fxf_.append(Fxf); Fxr_.append(Fxr)
+	Y_.append(Y)
+	Fx_.append(Fx)
 
-	mu_1, Sigma_1 = EKF_step(X_0, P_0, Y, delta, Fx, kappa_[i], dt, veh, ftire, rtire, mu[i], Sigma[i], J_A, C, Q, R)
-
-	Sigma.append(Sigma_1) 
-	mu.append(mu_1)
+mu, Sigma = kf.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_)
 
 # Convert mu to list
 Ux_est_, Uy_est_, r_est_ = convert_estimation(mu)
