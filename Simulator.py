@@ -19,7 +19,7 @@ rtire = SimpleNamespace(**rtire)
 
 # Time parameters
 dt = 0.001
-t_end = 30
+t_end = 10
 t_ = np.linspace(0,t_end, int((t_end/dt)+1))
 
 #Get Map
@@ -79,7 +79,8 @@ Uy_lin_.append(0)
 Sigma.append(np.diag([.1, .1, .1])) 
 mu.append(np.array([[1,.1,.1]]).T)
 
-kf = KalmanFilters.KalmanFilters(C, Q, R, dt, veh, ftire, rtire, "EKF")
+
+kf = KalmanFilters.KalmanFilters(C, Q, R, dt, veh, ftire, rtire, "iEKF")
 
 
 #Simulation Loop
