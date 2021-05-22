@@ -60,7 +60,7 @@ Sigma = []
 
 #Initial Conditions
 r_.append(0)
-Ux_.append(0.001)
+Ux_.append(0)
 Uy_.append(0)
 e_.append(0.5)
 s_.append(0.1)

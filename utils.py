@@ -268,11 +268,12 @@ def UT_inv(X,W,Q,n):
 def get_bin(s,W,N):
 	bin_edges = []
 	bin_edges.append(0)
-	for k in range(1,N):
+	for k in range(1,N+1):
 		bin_edges.append(bin_edges[k-1] + W[k-1])
-		if (s >= bin_edges[k-1] & s <= bin_edges[k]):
-			z = k-1
-			break
+		if (s >= bin_edges[k-1]):
+			if (s <= bin_edges[k]):
+				z = k-1
+				break
 	return z
 
 def multivariate_normal(x, d, mean, covariance):

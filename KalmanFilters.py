@@ -126,11 +126,21 @@ class KalmanFilters:
             #Update
             W_PF = []
             for i in range(self.N):
-                print(current_meas)
-                print(self.C.dot(X_PF[i]))
                 W_PF.append(multivariate_normal((current_meas.T-self.C.dot(X_PF[i])).T, 2, np.zeros([2,1]), self.R))
-            print(sum(W_PF))
+            W_sum = sum(W_PF)
 
+            for i in range(self.N):
+                W_PF[i] = W_PF[i]/W_sum
+
+            #Resample
+            for i in range(self.N):
+                s = np.random.uniform(0,1,1)
+                z = get_bin(s,W_PF,self.N)
+                X_PF[i] = X_PF[z];
+
+            self.X_PF = X_PF.T
+            curr_state = sum(X_PF)/self.N
+            curr_cov = np.zeros([self.n,self.n])
 
         return curr_state, curr_cov
 
