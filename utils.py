@@ -234,3 +234,48 @@ def convert_estimation(mu):
 		r.append(z[2][0])
 		
 	return Ux, Uy, r
+
+def UT(mu, sigma, lam, n):
+	#mu = np.array([mu]).T
+	W = [];
+	X = [];
+	W.append(lam/(lam+n))
+	X.append(mu)
+	Z = np.linalg.cholesky((lam+n)*sigma);
+	Z = Z.T #Hack because indexing columns isnt working?
+	for i in range(2*n):
+		W.append(1/(2*(lam+n)))
+		if (i < n):
+			X.append((mu.T+Z[i]).T)
+		else:
+			X.append((mu.T-Z[i-n]).T)
+	return X, W
+
+def UT_inv(X,W,Q,n):
+	mu = np.zeros((n, 1))
+	sigma = np.zeros((n, n))
+
+	for i in range(2*n+1):
+		Xi = np.array([X[i]]).T
+		mu = mu + W[i]*Xi
+	for i in range(2*n+1):
+		Xi = np.array([X[i]]).T
+		sigma = sigma + W[i]*np.outer(Xi-mu,Xi.T-mu.T)
+	return mu, sigma+Q
+
+#NOTE: UNTESTED
+#For PF resampling
+def get_bin(s,W,N):
+	bin_edges = []
+	bin_edges.append(0)
+	for k in range(1,N):
+		bin_edges.append(bin_edges[k-1] + W[k-1])
+		if (s >= bin_edges[k-1] & s <= bin_edges[k]):
+			z = k-1
+			break
+	return z
+
+def multivariate_normal(x, d, mean, covariance):
+    """pdf of the multivariate normal distribution."""
+    x_m = x - mean
+    return (1/(np.sqrt((2 * np.pi)**d * np.linalg.det(covariance))))*(np.exp(-((x_m.T).dot(np.linalg.inv(covariance)).dot(x_m)) / 2))

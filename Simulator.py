@@ -60,7 +60,7 @@ Sigma = []
 
 #Initial Conditions
 r_.append(0)
-Ux_.append(2)
+Ux_.append(0.001)
 Uy_.append(0)
 e_.append(0.5)
 s_.append(0.1)
@@ -80,7 +80,7 @@ Sigma.append(np.diag([.1, .1, .1]))
 mu.append(np.array([[1,.1,.1]]).T)
 
 
-kf = KalmanFilters.KalmanFilters(C, Q, R, dt, veh, ftire, rtire, "iEKF")
+kf = KalmanFilters.KalmanFilters(C, Q, R, dt, veh, ftire, rtire, "PF")
 
 
 #Simulation Loop
