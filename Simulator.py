@@ -33,7 +33,7 @@ axdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.axDes.squeeze
 #Define linear measurement model and noise covariances
 C = np.array([[1/veh.Re, 0, 0],[0, 0, 1]])
 Q = np.diag([0.00005, .000005, .000001])
-R = np.diag([.000001,deg2rad(0.01**2)])
+R = np.diag([.1,deg2rad(0.01**2)])
 
 #Allocate variables
 r_ = []

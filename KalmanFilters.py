@@ -24,6 +24,7 @@ class KalmanFilters:
 
         if (filter_type == "PF"):
             self.N = 5
+            # Should this be sampled using initial covariance?
             self.X_PF = np.linalg.cholesky(self.Q).dot(np.random.randn(self.n,self.N))
 
 
@@ -114,7 +115,9 @@ class KalmanFilters:
             curr_cov = sigma_t01 - sigma_xy.dot(np.linalg.inv(sigma_y)).dot(sigma_xy.T)
 
         elif (self.filter_type == "PF"):            
-            X_PF = self.X_PF.T
+            X_PF = self.X_PF.T # 5x3
+            #print(np.shape(X_PF))
+            #print(X_PF)
 
             #Predict
             for i in range(self.N):
@@ -122,27 +125,38 @@ class KalmanFilters:
                     self.dt, self.veh, self.ftire, self.rtire)
                 X_1 = np.array([X_1])
                 X_PF[i] = X_1 + np.random.randn(1,self.n).dot(np.linalg.cholesky(self.Q))
+            #print(np.shape(X_PF))
+            #print(X_PF)
 
             #Update
             W_PF = []
             for i in range(self.N):
+                #print((current_meas.T-self.C.dot(X_PF[i])).T)
+                #print(self.R)
                 W_PF.append(multivariate_normal((current_meas.T-self.C.dot(X_PF[i])).T, 2, np.zeros([2,1]), self.R))
             W_sum = sum(W_PF)
 
             for i in range(self.N):
-                W_PF[i] = W_PF[i]/W_sum
+                W_PF[i] = 1.0*W_PF[i]/(1.0*W_sum)
+            #print(W_PF)
 
             #Resample
+            X_PF_new = X_PF
             for i in range(self.N):
                 s = np.random.uniform(0,1,1)
                 z = get_bin(s,W_PF,self.N)
-                X_PF[i] = X_PF[z];
+                X_PF_new[i] = X_PF[z]
+            X_PF = X_PF_new
 
             self.X_PF = X_PF.T
             curr_state = sum(X_PF)/self.N
+            curr_state_correct_format = np.zeros((self.n,1))
+            curr_state_correct_format[0] = curr_state[0]
+            curr_state_correct_format[1] = curr_state[1]
+            curr_state_correct_format[2] = curr_state[2]
             curr_cov = np.zeros([self.n,self.n])
 
-        return curr_state, curr_cov
+        return curr_state_correct_format, curr_cov
 
     def run_filter(self, init_state, init_cov, measurement_data, 
         delta_, Fx_, Fxf_, Fxr_, kappa_):
