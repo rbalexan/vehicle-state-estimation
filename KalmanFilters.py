@@ -23,7 +23,7 @@ class KalmanFilters:
             self.lam = 2
 
         if (filter_type == "PF"):
-            self.N = 1000
+            self.N = 5
             # Should this be sampled using initial covariance?
             self.X_PF = np.linalg.cholesky(self.Q).dot(np.random.randn(self.n,self.N))
 
@@ -152,9 +152,10 @@ class KalmanFilters:
             curr_state_correct_format[0] = curr_state[0]
             curr_state_correct_format[1] = curr_state[1]
             curr_state_correct_format[2] = curr_state[2]
+            curr_state = curr_state_correct_format
             curr_cov = np.zeros([self.n,self.n])
 
-        return curr_state_correct_format, curr_cov
+        return curr_state, curr_cov
 
     def run_filter(self, init_state, init_cov, measurement_data, 
         delta_, Fx_, Fxf_, Fxr_, kappa_):

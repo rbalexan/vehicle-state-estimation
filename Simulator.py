@@ -17,10 +17,10 @@ veh = SimpleNamespace(**veh)
 ftire = SimpleNamespace(**ftire)
 rtire = SimpleNamespace(**rtire)
 
-# Time parameters
-dt = 0.001
-t_end = 10
-t_ = np.linspace(0,t_end, int((t_end/dt)+1))
+
+# Input type
+#use_data = False
+use_data = True
 
 #Get Map
 mat_fname = pjoin(dirname(abspath(__file__)), 'project_path.mat')
@@ -36,10 +36,15 @@ mat_contents = sio.loadmat(mat_fname)
 data = SimpleNamespace(**mat_contents)
 
 
+# Time parameters
+dt = 0.01
+t_end = 35 #Must pick less than 39 for this data set
+t_ = np.linspace(0,t_end, int((t_end/dt)+1))
+
 #Define linear measurement model and noise covariances
 C = np.array([[1/veh.Re, 0, 0],[0, 0, 1]])
-Q = np.diag([0.00005, .000005, .000001])
-R = np.diag([.1,deg2rad(0.01**2)])
+Q = np.diag([0.0005, .00005, .00001])
+R = np.diag([1,deg2rad(0.01**2)])
 
 #Allocate variables
 r_ = []
@@ -55,10 +60,11 @@ kappa_ = []
 Y_ = []
 Fx_ = []
 
-#Temporary for testing jacobian
-Ux_lin_ = []
-Uy_lin_ = []
-r_lin_ = []
+#Measurements
+
+Fxf_meas_ = []
+Fxr_meas_ = []
+wheelspeed_meas = []
 
 #Handle mu this way for easy row extraction
 mu = []
@@ -78,15 +84,11 @@ Fx_.append(0)
 kappa_.append(0)
 
 
-r_lin_.append(0)
-Ux_lin_.append(1)
-Uy_lin_.append(0)
-
 Sigma.append(np.diag([.1, .1, .1])) 
 mu.append(np.array([[1,.1,.1]]).T)
 
 
-kf = KalmanFilters.KalmanFilters(C, Q, R, dt, veh, ftire, rtire, "PF")
+kf = KalmanFilters.KalmanFilters(C, Q, R, dt, veh, ftire, rtire, "EKF")
 
 
 #Simulation Loop
@@ -101,18 +103,26 @@ for i in range(len(t_)-1):
 	#Get control commands (lookahead controller)
 	# this is using the true state as we want a perfect controller
 	# tracking error doesn't matter because we are just looking at estimator performance.
-	delta, Fx = controller(X_0, P_0, veh, ftire, rtire, path)
-
-	#Ground truth state (from nonlinear simulation)
-	X_1, P_1, delta, Fxf, Fxr = simulate_step(X_0, P_0, delta, Fx, kappa_[i], dt, veh, ftire, rtire)
-	W = np.linalg.cholesky(Q).dot(np.random.randn(3,1))
-
-	Y = C.dot(np.array([X_1]).T+W) + np.linalg.cholesky(R).dot(np.random.randn(2,1))
-
-	#Append new states/inputs
-	Ux_.append(X_1[0]+W[0][0]); Uy_.append(X_1[1]+W[1][0]); r_.append(X_1[2]+W[2][0]); s_.append(P_1[0]); e_.append(P_1[1]); dpsi_.append(P_1[2]); delta_.append(delta); Fxf_.append(Fxf); Fxr_.append(Fxr)
-	Y_.append(Y)
-	Fx_.append(Fx)
+	if (use_data):
+		r_.append(data.r[0][i]); Ux_.append(data.Ux[0][i]); Uy_.append(data.Uy[0][i]); delta_.append(data.delta[0][i]); Fx_.append(data.Fx[0][i])
+		Fxf, Fxr = splitFx(Fx_[i],veh)
+		Fxf_.append(Fxf); Fxr_.append(Fxr); s_.append(data.s[0][i]); e_.append(data.e[0][i]); dpsi_.append(data.dpsi[0][i]);
+		wheelspeed_meas = (data.LR_w[0][i] + data.RR_w[0][i])/2
+		#Convert wheelspeed from mps to rad/s
+		wheelspeed_meas = wheelspeed_meas/veh.Re
+		Y = np.zeros([2,1])
+		Y[0,0] = wheelspeed_meas
+		Y[1,0] = r_[i]
+		Y_.append(Y);
+	else:
+		delta, Fx = controller(X_0, P_0, veh, ftire, rtire, path)
+		#Ground truth state (from nonlinear simulation)
+		X_1, P_1, delta, Fxf, Fxr = simulate_step(X_0, P_0, delta, Fx, kappa_[i], dt, veh, ftire, rtire)
+		W = np.linalg.cholesky(Q).dot(np.random.randn(3,1))
+		Y = C.dot(np.array([X_1]).T+W) + np.linalg.cholesky(R).dot(np.random.randn(2,1))
+		#Append new states/inputs
+		Ux_.append(X_1[0]+W[0][0]); Uy_.append(X_1[1]+W[1][0]); r_.append(X_1[2]+W[2][0]); s_.append(P_1[0]); e_.append(P_1[1]); dpsi_.append(P_1[2]); delta_.append(delta); Fxf_.append(Fxf); Fxr_.append(Fxr)
+		Y_.append(Y); Fx_.append(Fx)
 
 mu, Sigma = kf.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_)
 

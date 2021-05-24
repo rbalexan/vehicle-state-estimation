@@ -39,6 +39,16 @@ def controller(X_0, P_0, veh, ftire, rtire, path):
 
 	return delta, Fx
 
+def splitFx(Fx_0,veh):
+	#Split Fx (not checking limits yet)
+	if (Fx_0 > 0):
+		Fxf = Fx_0
+		Fxr = 0
+	else:
+		Fxf = veh.brake_prop_front*Fx_0
+		Fxr = veh.brake_prop_rear*Fx_0
+	return Fxf, Fxr
+
 
 def simulate_step(X_0, P_0, delta_0, Fx_0, kappa, dt, veh, ftire, rtire):
 
@@ -53,12 +63,7 @@ def simulate_step(X_0, P_0, delta_0, Fx_0, kappa, dt, veh, ftire, rtire):
 	r_0 = X_0[2]
 
 	#Split Fx (not checking limits yet)
-	if (Fx_0 > 0):
-		Fxf = Fx_0
-		Fxr = 0
-	else:
-		Fxf = veh.brake_prop_front*Fx_0
-		Fxr = veh.brake_prop_rear*Fx_0
+	Fxf, Fxr = splitFx(Fx_0,veh)
 
 	delta = delta_0
 
@@ -88,12 +93,6 @@ def simulate_step(X_0, P_0, delta_0, Fx_0, kappa, dt, veh, ftire, rtire):
 
 	return X_1, P_1, delta, Fxf, Fxr
 
-
-def foo():
-	foo.counter += 1
-	print("Counter is %d" % foo.counter)
- #Function attribute
-foo.counter = 0
 
 def Fx_limits(Fx, veh, ftire, _tire):
 	#FX_LIMITS Calculates limited longitudinal tire force including friction and engine limits
