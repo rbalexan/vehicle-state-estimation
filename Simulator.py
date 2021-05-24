@@ -30,6 +30,12 @@ kappa_interp =  scipy.interpolate.interp1d(path.s_m.squeeze(), path.k_1pm.squeez
 uxdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.UxDes.squeeze())
 axdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.axDes.squeeze())
 
+#Get data
+mat_fname = pjoin(dirname(abspath(__file__)), 'AA273_data.mat')
+mat_contents = sio.loadmat(mat_fname)
+data = SimpleNamespace(**mat_contents)
+
+
 #Define linear measurement model and noise covariances
 C = np.array([[1/veh.Re, 0, 0],[0, 0, 1]])
 Q = np.diag([0.00005, .000005, .000001])

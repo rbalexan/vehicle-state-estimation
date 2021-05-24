@@ -23,7 +23,7 @@ class KalmanFilters:
             self.lam = 2
 
         if (filter_type == "PF"):
-            self.N = 5
+            self.N = 1000
             # Should this be sampled using initial covariance?
             self.X_PF = np.linalg.cholesky(self.Q).dot(np.random.randn(self.n,self.N))
 
@@ -116,8 +116,6 @@ class KalmanFilters:
 
         elif (self.filter_type == "PF"):            
             X_PF = self.X_PF.T # 5x3
-            #print(np.shape(X_PF))
-            #print(X_PF)
 
             #Predict
             for i in range(self.N):
