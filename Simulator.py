@@ -64,7 +64,7 @@ Fx_ = []
 
 Fxf_meas_ = []
 Fxr_meas_ = []
-wheelspeed_meas = []
+wheelspeed_meas_list = []
 
 #Handle mu this way for easy row extraction
 mu = []
@@ -88,7 +88,7 @@ Sigma.append(np.diag([.1, .1, .1]))
 mu.append(np.array([[1,.1,.1]]).T)
 
 
-kf = KalmanFilters.KalmanFilters(C, Q, R, dt, veh, ftire, rtire, "EKF")
+kf = KalmanFilters.KalmanFilters(C, Q, R, dt, veh, ftire, rtire, "iEKF")
 
 
 #Simulation Loop
@@ -108,12 +108,14 @@ for i in range(len(t_)-1):
 		Fxf, Fxr = splitFx(Fx_[i],veh)
 		Fxf_.append(Fxf); Fxr_.append(Fxr); s_.append(data.s[0][i]); e_.append(data.e[0][i]); dpsi_.append(data.dpsi[0][i]);
 		wheelspeed_meas = (data.LR_w[0][i] + data.RR_w[0][i])/2
+		wheelspeed_meas_list.append(wheelspeed_meas)
 		#Convert wheelspeed from mps to rad/s
 		wheelspeed_meas = wheelspeed_meas/veh.Re
 		Y = np.zeros([2,1])
 		Y[0,0] = wheelspeed_meas
 		Y[1,0] = r_[i]
 		Y_.append(Y);
+
 	else:
 		delta, Fx = controller(X_0, P_0, veh, ftire, rtire, path)
 		#Ground truth state (from nonlinear simulation)
@@ -133,6 +135,8 @@ Ux_est_, Uy_est_, r_est_ = convert_estimation(mu)
 fig, axs = plt.subplots(2, 3)
 axs[0, 0].plot(s_, Ux_, 'tab:orange')
 axs[0, 0].plot(s_, Ux_est_)
+if (use_data):
+	axs[0, 0].plot(s_[1:], wheelspeed_meas_list, 'tab:red')
 axs[0, 0].set_title('Longitudinal Velocity')
 axs[0, 1].plot(s_, Uy_, 'tab:orange')
 axs[0, 1].plot(s_, Uy_est_)
