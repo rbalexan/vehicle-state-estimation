@@ -3,7 +3,7 @@ from load_vehicle import *
 from utils import *
 from types import SimpleNamespace
 from os.path import dirname, abspath, join as pjoin
-import KalmanFilters
+from KalmanFilters import *
 import scipy.io as sio
 import scipy.interpolate
 import matplotlib.pyplot as plt
@@ -88,7 +88,7 @@ Sigma.append(np.diag([.1, .1, .1]))
 mu.append(   np.array([[1, .1, .1]]).T)
 
 
-kf = KalmanFilters.KalmanFilters(C, Q, R, dt, veh, ftire, rtire, "EKF")
+kf = IteratedExtendedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
 
 
 #Simulation Loop
