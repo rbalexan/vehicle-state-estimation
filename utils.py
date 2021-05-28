@@ -3,25 +3,27 @@ import math
 import numpy as np
 import symengine
 
+
 def controller(X_0, P_0, veh, ftire, rtire, path):
+
 	#Unpack current state
-	s = P_0[0]
-	e = P_0[1]
+	s    = P_0[0]
+	e    = P_0[1]
 	dpsi = P_0[2]
-	Ux = X_0[0]
-	Uy = X_0[1]
-	r = X_0[2]
+	Ux   = X_0[0]
+	Uy   = X_0[1]
+	r    = X_0[2]
 
 	#Understeer gradient
 	K = ((veh.Wf/ftire.Ca_lin)-(veh.Wr/rtire.Ca_lin))/veh.g
 
 	#Gains
-	K_la = 3000
-	x_la = 8
+	K_la   = 3000
+	x_la   = 8
 	K_long = 3200
 
 	#Interpolations
-	kappa_interp =  scipy.interpolate.interp1d(path.s_m.squeeze(), path.k_1pm.squeeze())
+	kappa_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.k_1pm.squeeze())
 	Uxdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.UxDes.squeeze())
 	Axdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.axDes.squeeze())
 	kappa = kappa_interp(s)
@@ -29,24 +31,27 @@ def controller(X_0, P_0, veh, ftire, rtire, path):
 	Axdes = Axdes_interp(s)
 
 	#Lookahead lateral control
-	dpsi_ss = kappa*((veh.m*veh.a*Ux**2)/(veh.L*rtire.Ca_lin)-veh.b);
-	delta_ff = (K_la*x_la/ftire.Ca_lin)*dpsi_ss+kappa*(veh.L+K*Ux**2);
-	delta = (-K_la*(e+x_la*dpsi)/ftire.Ca_lin)+delta_ff; 
+	dpsi_ss  = kappa*((veh.m*veh.a*Ux**2)/(veh.L*rtire.Ca_lin)-veh.b)
+	delta_ff = (K_la*x_la/ftire.Ca_lin)*dpsi_ss+kappa*(veh.L+K*Ux**2)
+	delta    = (-K_la*(e+x_la*dpsi)/ftire.Ca_lin)+delta_ff 
 
 	#Longitudinal control
-	F_drag = veh.cdA*veh.rho*(1/2)*Ux**2;
-	Fx = veh.m*Axdes+veh.frr+F_drag+K_long*(Uxdes-Ux)
+	F_drag = veh.cdA*veh.rho*(1/2)*Ux**2
+	Fx     = veh.m*Axdes+veh.frr+F_drag+K_long*(Uxdes-Ux)
 
 	return delta, Fx
 
+
 def splitFx(Fx_0,veh):
+
 	#Split Fx (not checking limits yet)
 	if (Fx_0 > 0):
 		Fxf = Fx_0
 		Fxr = 0
 	else:
 		Fxf = veh.brake_prop_front*Fx_0
-		Fxr = veh.brake_prop_rear*Fx_0
+		Fxr = veh.brake_prop_rear *Fx_0
+
 	return Fxf, Fxr
 
 
@@ -55,21 +60,21 @@ def simulate_step(X_0, P_0, delta_0, Fx_0, kappa, dt, veh, ftire, rtire):
 	#Simple version of hard simulator. Needs additional features
 
 	#Unpack current state
-	s_0 = P_0[0]
-	e_0 = P_0[1]
+	s_0    = P_0[0]
+	e_0    = P_0[1]
 	dpsi_0 = P_0[2]
-	Ux_0 = X_0[0]
-	Uy_0 = X_0[1]
-	r_0 = X_0[2]
+	Ux_0   = X_0[0]
+	Uy_0   = X_0[1]
+	r_0    = X_0[2]
 
 	#Split Fx (not checking limits yet)
-	Fxf, Fxr = splitFx(Fx_0,veh)
+	Fxf, Fxr = splitFx(Fx_0, veh)
 
 	delta = delta_0
 
 	#Weight Transfer
-	Wf = veh.Wf - veh.hcg*(Fxf+Fxr)/veh.L;
-	Wr = veh.Wr + veh.hcg*(Fxf+Fxr)/veh.L;
+	Wf = veh.Wf - veh.hcg*(Fxf+Fxr)/veh.L
+	Wr = veh.Wr + veh.hcg*(Fxf+Fxr)/veh.L
 
 	#Slip Angles
 	alpha_f, alpha_r = slip_angles(Ux_0, Uy_0, r_0, delta, veh)
@@ -81,63 +86,73 @@ def simulate_step(X_0, P_0, delta_0, Fx_0, kappa, dt, veh, ftire, rtire):
 	#Get state derivatives
 	Ux_dot, Uy_dot, r_dot, s_dot, e_dot, dpsi_dot = nonlinear_bicycle_model(Fyf, Fyr, Fxf, Fxr, Ux_0, Uy_0, r_0, e_0, dpsi_0, delta, kappa, veh)
 	
-	Ux_1 = integrate_euler(Ux_0, Ux_dot, dt)
-	Uy_1 = integrate_euler(Uy_0, Uy_dot, dt)
-	r_1 = integrate_euler(r_0, r_dot, dt)
-	s_1 = integrate_euler(s_0, s_dot, dt)
-	e_1 = integrate_euler(e_0, e_dot, dt)
+	Ux_1   = integrate_euler(Ux_0,   Ux_dot,   dt)
+	Uy_1   = integrate_euler(Uy_0,   Uy_dot,   dt)
+	r_1    = integrate_euler(r_0,    r_dot,    dt)
+	s_1    = integrate_euler(s_0,    s_dot,    dt)
+	e_1    = integrate_euler(e_0,    e_dot,    dt)
 	dpsi_1 = integrate_euler(dpsi_0, dpsi_dot, dt)
 
 	X_1 = [Ux_1, Uy_1, r_1]
-	P_1 = [s_1, e_1, dpsi_1]
+	P_1 = [s_1,  e_1,  dpsi_1]
 
 	return X_1, P_1, delta, Fxf, Fxr
 
 
-def Fx_limits(Fx, veh, ftire, _tire):
+def Fx_limits(Fx, veh, ftire, rtire):
+
 	#FX_LIMITS Calculates limited longitudinal tire force including friction and engine limits
 	if (Fx) < 0 :
-		Fx_f = veh.brake_prop_front*Fx;
-		Fx_r = veh.brake_prop_rear*Fx;
+		Fx_f = veh.brake_prop_front*Fx
+		Fx_r = veh.brake_prop_rear *Fx
 	else:
-		Fx_f = Fx;
-		Fx_r = 0;
+		Fx_f = Fx
+		Fx_r = 0
 	
-	Fx_f = max(Fx_f, -veh.Wf*ftire.mu);
-	Fx_f = min(Fx_f, veh.Wf*ftire.mu);
+	Fx_f = max(Fx_f, -veh.Wf*ftire.mu)
+	Fx_f = min(Fx_f,  veh.Wf*ftire.mu)
 
-	Fx_r = max(Fx_r, -veh.Wr*rtire.mu);
-	Fx_r = min(Fx_r, veh.Wr*rtire.mu);
+	Fx_r = max(Fx_r, -veh.Wr*rtire.mu)
+	Fx_r = min(Fx_r,  veh.Wr*rtire.mu)
 
-	Fx_lim = Fx_f + Fx_r;
+	Fx_lim = Fx_f + Fx_r
+
 	return Fx_lim
 
+
 def slip_angles(Ux, Uy, r, delta, veh):
-	alpha_f = math.atan2((Uy + veh.a*r), Ux) - delta;
-	alpha_r = math.atan2((Uy - veh.b*r), Ux);
+
+	alpha_f = math.atan2((Uy + veh.a*r), Ux) - delta
+	alpha_r = math.atan2((Uy - veh.b*r), Ux)
+
 	return alpha_f, alpha_r
+
 
 def nonlinear_bicycle_model(Fyf, Fyr, Fxf, Fxr, Ux, Uy, r, e, dpsi, delta, kappa, veh):
 
-	Ux_dot = (1/veh.m)*(Fxr+Fxf*math.cos(delta)-Fyf*math.sin(delta)-veh.frr*veh.m*veh.g-0.5*veh.rho*veh.cdA*Ux**2)+r*Uy
-	Uy_dot = (1/veh.m)*(Fyf*math.cos(delta)+Fyr+Fxf*math.sin(delta))-r*Ux
-	r_dot = (1/veh.Iz)*(veh.a*Fyf*math.cos(delta)+veh.a*Fxf*math.sin(delta)-veh.b*Fyr)
+	Ux_dot = (1/veh.m) *(Fxr+Fxf*math.cos(delta)-Fyf*math.sin(delta)-veh.frr*veh.m*veh.g-0.5*veh.rho*veh.cdA*Ux**2)+r*Uy
+	Uy_dot = (1/veh.m) *(Fyf*math.cos(delta)+Fyr+Fxf*math.sin(delta))-r*Ux
+	r_dot  = (1/veh.Iz)*(veh.a*Fyf*math.cos(delta)+veh.a*Fxf*math.sin(delta)-veh.b*Fyr)
 
-	s_dot = (1/(1-e*kappa))*(Ux*math.cos(dpsi)-Uy*math.sin(dpsi))
-	e_dot = Uy*math.cos(dpsi) + Ux*math.sin(dpsi)
+	s_dot    = (1/(1-e*kappa))*(Ux*math.cos(dpsi)-Uy*math.sin(dpsi))
+	e_dot    = Uy*math.cos(dpsi) + Ux*math.sin(dpsi)
 	dpsi_dot = r-kappa*s_dot
 
 	return Ux_dot, Uy_dot, r_dot, s_dot, e_dot, dpsi_dot
 
+
 def integrate_euler(x0, x0_dot, dt):
+
 	x1 = x0 + x0_dot*dt
+
 	return x1
 
 
 def Fy_CoupledFiala(alpha, Fz, Fx, tire):
+
 	#Unpack params
 	mup = tire.mu
-	Ca = tire.Cy
+	Ca  = tire.Cy
 
 	#Calculate derating parameter
 	inside = (mup*Fz)**2 - Fx**2
@@ -146,7 +161,7 @@ def Fy_CoupledFiala(alpha, Fz, Fx, tire):
 	zeta = math.sqrt(inside)/(mup*Fz)
 
 	#Calculate sliding slip angle
-	asl = math.atan(3*zeta*mup*Fz/Ca)
+	asl  = math.atan(3*zeta*mup*Fz/Ca)
 
 	#Calculate lateral force
 	if (abs(alpha)<asl):
@@ -158,10 +173,14 @@ def Fy_CoupledFiala(alpha, Fz, Fx, tire):
 
 
 def rad2deg(rad):
+
 	return rad*180.0/np.pi
 
+
 def deg2rad(deg):
+
 	return deg*np.pi/180.0
+
 
 def get_jacobian(Ux_0, Uy_0, r_0, delta_0, Fxf_0, Fxr_0, veh, ftire, rtire, dt):
 
@@ -184,7 +203,7 @@ def get_jacobian(Ux_0, Uy_0, r_0, delta_0, Fxf_0, Fxr_0, veh, ftire, rtire, dt):
 			if (i == j):
 				J_A[i,j] = 1 + dt*symengine.diff(fi, s)
 			else:
-				J_A[i,j] = dt*symengine.diff(fi, s)
+				J_A[i,j] =     dt*symengine.diff(fi, s)
 
 	# Fill Jacobian matrix with entries
 	for i, fi in enumerate(f):
@@ -192,9 +211,9 @@ def get_jacobian(Ux_0, Uy_0, r_0, delta_0, Fxf_0, Fxr_0, veh, ftire, rtire, dt):
 				J_B[i,j] = dt*symengine.diff(fi, s)
 
 	#Substitute in current state
-	J_A = J_A.subs(states, [Ux_0, Uy_0, r_0])
+	J_A = J_A.subs(states, [Ux_0,    Uy_0,  r_0])
 	J_A = J_A.subs(inputs, [delta_0, Fxf_0, Fxr_0])
-	J_B = J_B.subs(states, [Ux_0, Uy_0, r_0])
+	J_B = J_B.subs(states, [Ux_0,    Uy_0,  r_0])
 	J_B = J_B.subs(inputs, [delta_0, Fxf_0, Fxr_0])
 
 	#Convert to numpy
@@ -202,6 +221,7 @@ def get_jacobian(Ux_0, Uy_0, r_0, delta_0, Fxf_0, Fxr_0, veh, ftire, rtire, dt):
 	J_B = np.array(J_B).astype(np.float64)
 
 	return J_A, J_B
+
 
 def EKF_step(X_0, P_0, Y, delta, Fx, Fxf, Fxr, kappa, dt, veh, ftire, rtire, Sigma_0, C, Q, R):
 
@@ -225,22 +245,23 @@ def convert_estimation(mu):
 
 	Ux = []
 	Uy = []
-	r = []
+	r  = []
 
 	for i, z in enumerate(mu):
 		Ux.append(z[0][0])
 		Uy.append(z[1][0])
-		r.append(z[2][0])
+		r.append( z[2][0])
 		
 	return Ux, Uy, r
 
+
 def UT(mu, sigma, lam, n):
 	#mu = np.array([mu]).T
-	W = [];
-	X = [];
+	W = []
+	X = []
 	W.append(lam/(lam+n))
 	X.append(mu)
-	Z = np.linalg.cholesky((lam+n)*sigma);
+	Z = np.linalg.cholesky((lam+n)*sigma)
 	Z = Z.T #Hack because indexing columns isnt working?
 	for i in range(2*n):
 		W.append(1/(2*(lam+n)))
@@ -248,9 +269,12 @@ def UT(mu, sigma, lam, n):
 			X.append((mu.T+Z[i]).T)
 		else:
 			X.append((mu.T-Z[i-n]).T)
+
 	return X, W
 
+
 def UT_inv(X,W,Q,n):
+
 	mu = np.zeros((n, 1))
 	sigma = np.zeros((n, n))
 
@@ -260,11 +284,14 @@ def UT_inv(X,W,Q,n):
 	for i in range(2*n+1):
 		Xi = np.array([X[i]]).T
 		sigma = sigma + W[i]*np.outer(Xi-mu,Xi.T-mu.T)
+	
 	return mu, sigma+Q
+
 
 #NOTE: UNTESTED
 #For PF resampling
 def get_bin(s,W,N):
+
 	bin_edges = []
 	bin_edges.append(0)
 	for k in range(1,N+1):
@@ -273,9 +300,12 @@ def get_bin(s,W,N):
 			if (s <= bin_edges[k]):
 				z = k-1
 				break
+
 	return z
 
+
 def multivariate_normal(x, d, mean, covariance):
+	
     """pdf of the multivariate normal distribution."""
     x_m = x - mean
     return (1/(np.sqrt((2 * np.pi)**d * np.linalg.det(covariance))))*(np.exp(-((x_m.T).dot(np.linalg.inv(covariance)).dot(x_m)) / 2))
