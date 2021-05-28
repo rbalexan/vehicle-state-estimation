@@ -9,14 +9,14 @@ class KalmanFilters:
     def __init__(self, C, Q, R, dt, veh, ftire, rtire):
         
         #Define linear measurement model and noise covariances
-        self.C = C
-        self.Q = Q
-        self.R = R
-        self.dt = dt
-        self.veh = veh
+        self.C     = C
+        self.Q     = Q
+        self.R     = R
+        self.dt    = dt
+        self.veh    = veh
         self.ftire = ftire
         self.rtire = rtire
-        self.n = 3
+        self.n     = 3
             
 
     def run_filter(self, init_state, init_cov, measurement_data, 
@@ -26,11 +26,11 @@ class KalmanFilters:
         num_states       = len(init_state)
 
         # +1 because we include the initial state
-        estimated_state  = []#np.zeros((num_states, num_measurements + 1))
-        state_covariance = []#np.zeros((num_states, num_states, num_measurements + 1))
+        estimated_state  = [] #np.zeros((num_states, num_measurements + 1))
+        state_covariance = [] #np.zeros((num_states, num_states, num_measurements + 1))
 
-        estimated_state.append(init_state)#[:,0] = init_state
-        state_covariance.append(init_cov)#[:,:,0] = init_cov
+        estimated_state.append(init_state) #[:,0] = init_state
+        state_covariance.append(init_cov)  #[:,:,0] = init_cov
 
         assert len(delta_) == len(measurement_data) + 1
         assert len(Fx_)    == len(measurement_data) + 1
@@ -75,8 +75,8 @@ class ExtendedKalmanFilter(KalmanFilters):
         R = self.R
 
         #Update
-        curr_state = mu_t01 + Sigma_t01.dot(C.T).dot(np.linalg.inv(C.dot(Sigma_t01).dot(C.T)+R)).dot(current_meas-C.dot(mu_t01))
-        curr_cov = Sigma_t01 - Sigma_t01.dot(C.T).dot(np.linalg.inv(C.dot(Sigma_t01).dot(C.T)+R)).dot(C).dot(Sigma_t01)
+        curr_state =    mu_t01 + Sigma_t01.dot(C.T).dot(np.linalg.inv(C.dot(Sigma_t01).dot(C.T)+R)).dot(current_meas-C.dot(mu_t01))
+        curr_cov   = Sigma_t01 - Sigma_t01.dot(C.T).dot(np.linalg.inv(C.dot(Sigma_t01).dot(C.T)+R)).dot(C).dot(Sigma_t01)
 
         return curr_state, curr_cov
 
@@ -112,9 +112,10 @@ class IteratedExtendedKalmanFilter(KalmanFilters):
         stopping_threshold = 1 #Arbitrary choice for now, maybe pass this in later?
 
         while (np.linalg.norm(mu_j-mu_prev) > stopping_threshold):
+
             mu_prev = mu_j
-            K = Sigma_t01.dot(C.T).dot(np.linalg.inv(C.dot(Sigma_t01).dot(C.T)+R))
-            mu_j = mu_t01 + K.dot(current_meas-C.dot(mu_j)) + K.dot(C).dot(mu_j-mu_t01)
+            K       = Sigma_t01.dot(C.T).dot(np.linalg.inv(C.dot(Sigma_t01).dot(C.T)+R))
+            mu_j    = mu_t01 + K.dot(current_meas-C.dot(mu_j)) + K.dot(C).dot(mu_j-mu_t01)
 
         curr_state = mu_j
         curr_cov = Sigma_t01 - K.dot(C).dot(Sigma_t01)
@@ -134,11 +135,11 @@ class UnscentedKalmanFilter(KalmanFilters):
         delta, Fx, Fxf, Fxr, kappa):
 
         lam = self.lam
-        n = self.n
+        n   = self.n
 
         #Compute UT
-        X_ut,W_ut = UT(prev_state, prev_cov, lam, n)
-        X_bar = []
+        X_ut, W_ut = UT(prev_state, prev_cov, lam, n)
+        X_bar      = []
 
         #Predict
         for i in range(2*n+1):
@@ -150,22 +151,31 @@ class UnscentedKalmanFilter(KalmanFilters):
         [mu_t01, sigma_t01] = UT_inv(X_bar, W_ut, self.Q, n)
 
         #Update
-        [X_ut,W_ut] = UT(mu_t01, sigma_t01, lam, n)
-        y_hat = 0
+        [X_ut, W_ut] = UT(mu_t01, sigma_t01, lam, n)
+        
+        y_hat        = 0
         y_prediction = []
+
         for i in range(2*n+1):
+
             V = np.linalg.cholesky(self.R).dot(np.random.randn(2,1))
             y_prediction.append(self.C.dot(X_ut[i])+V)
             y_hat = y_hat + W_ut[i]*y_prediction[i]
+
         sigma_y = self.R
+
         for i in range(2*n+1):
+
             sigma_y = sigma_y + W_ut[i]*np.outer(y_prediction[i]-y_hat,y_prediction[i].T-y_hat.T)
+
         sigma_xy = np.zeros([n,n-1])
+
         for i in range(2*n+1):
+
             sigma_xy = sigma_xy + W_ut[i]*np.outer(X_ut[i]-mu_t01,y_prediction[i].T-y_hat.T)
 
-        curr_state = mu_t01 + sigma_xy.dot(np.linalg.inv(sigma_y)).dot(current_meas-y_hat)
-        curr_cov = sigma_t01 - sigma_xy.dot(np.linalg.inv(sigma_y)).dot(sigma_xy.T)
+        curr_state =    mu_t01 + sigma_xy.dot(np.linalg.inv(sigma_y)).dot(current_meas-y_hat)
+        curr_cov   = sigma_t01 - sigma_xy.dot(np.linalg.inv(sigma_y)).dot(sigma_xy.T)
 
         return curr_state, curr_cov
 
@@ -189,7 +199,7 @@ class ParticleFilter(KalmanFilters):
         for i in range(self.N):
             X_1, _, _, _, _ = simulate_step((X_PF[i]).T, np.zeros((3,1)), delta, Fx, kappa,
                 self.dt, self.veh, self.ftire, self.rtire)
-            X_1 = np.array([X_1])
+            X_1     = np.array([X_1])
             X_PF[i] = X_1 + np.random.randn(1,self.n).dot(np.linalg.cholesky(self.Q))
         #print(np.shape(X_PF))
         #print(X_PF)
@@ -197,21 +207,28 @@ class ParticleFilter(KalmanFilters):
         #Update
         W_PF = []
         for i in range(self.N):
+
             #print((current_meas.T-self.C.dot(X_PF[i])).T)
             #print(self.R)
             W_PF.append(multivariate_normal((current_meas.T-self.C.dot(X_PF[i])).T, 2, np.zeros([2,1]), self.R))
+
         W_sum = sum(W_PF)
 
         for i in range(self.N):
+
             W_PF[i] = 1.0*W_PF[i]/(1.0*W_sum)
+
         #print(W_PF)
 
         #Resample
         X_PF_new = X_PF
+
         for i in range(self.N):
+
             s = np.random.uniform(0,1,1)
             z = get_bin(s,W_PF,self.N)
             X_PF_new[i] = X_PF[z]
+
         X_PF = X_PF_new
 
         self.X_PF = X_PF.T
@@ -221,6 +238,6 @@ class ParticleFilter(KalmanFilters):
         curr_state_correct_format[1] = curr_state[1]
         curr_state_correct_format[2] = curr_state[2]
         curr_state = curr_state_correct_format
-        curr_cov = np.zeros([self.n,self.n])
+        curr_cov   = np.zeros([self.n,self.n])
 
         return curr_state, curr_cov

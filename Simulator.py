@@ -112,12 +112,13 @@ for i in range(len(t_)-1):
 		wheelspeed_meas = (data.LR_w[0][i] + data.RR_w[0][i])/2
 		#Convert wheelspeed from mps to rad/s
 		wheelspeed_meas = wheelspeed_meas/veh.Re
-		Y = np.zeros([2,1])
+		Y      = np.zeros([2,1])
 		Y[0,0] = wheelspeed_meas
 		Y[1,0] = r_[i]
 		Y_.append(Y)
 		
 	else:
+		
 		delta, Fx = controller(X_0, P_0, veh, ftire, rtire, path)
 		#Ground truth state (from nonlinear simulation)
 		X_1, P_1, delta, Fxf, Fxr = simulate_step(X_0, P_0, delta, Fx, kappa_[i], dt, veh, ftire, rtire)

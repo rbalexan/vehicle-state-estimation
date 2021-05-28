@@ -208,7 +208,7 @@ def get_jacobian(Ux_0, Uy_0, r_0, delta_0, Fxf_0, Fxr_0, veh, ftire, rtire, dt):
 	# Fill Jacobian matrix with entries
 	for i, fi in enumerate(f):
 		for j, s in enumerate(inputs):
-				J_B[i,j] = dt*symengine.diff(fi, s)
+			J_B[i,j] = dt*symengine.diff(fi, s)
 
 	#Substitute in current state
 	J_A = J_A.subs(states, [Ux_0,    Uy_0,  r_0])
@@ -235,7 +235,7 @@ def EKF_step(X_0, P_0, Y, delta, Fx, Fxf, Fxr, kappa, dt, veh, ftire, rtire, Sig
 	Sigma_t01 = J_A.dot(Sigma_0).dot(J_A.T)+Q
 
 	#Update
-	mu_1 = mu_t01 + Sigma_t01.dot(C.T).dot(np.linalg.inv(C.dot(Sigma_t01).dot(C.T)+R)).dot(Y-C.dot(mu_t01))
+	mu_1    = mu_t01    + Sigma_t01.dot(C.T).dot(np.linalg.inv(C.dot(Sigma_t01).dot(C.T)+R)).dot(Y-C.dot(mu_t01))
 	Sigma_1 = Sigma_t01 - Sigma_t01.dot(C.T).dot(np.linalg.inv(C.dot(Sigma_t01).dot(C.T)+R)).dot(C).dot(Sigma_t01)
 
 
@@ -256,15 +256,20 @@ def convert_estimation(mu):
 
 
 def UT(mu, sigma, lam, n):
+
 	#mu = np.array([mu]).T
 	W = []
 	X = []
 	W.append(lam/(lam+n))
 	X.append(mu)
+
 	Z = np.linalg.cholesky((lam+n)*sigma)
 	Z = Z.T #Hack because indexing columns isnt working?
+
 	for i in range(2*n):
+
 		W.append(1/(2*(lam+n)))
+
 		if (i < n):
 			X.append((mu.T+Z[i]).T)
 		else:
@@ -279,9 +284,12 @@ def UT_inv(X,W,Q,n):
 	sigma = np.zeros((n, n))
 
 	for i in range(2*n+1):
+
 		Xi = np.array([X[i]]).T
 		mu = mu + W[i]*Xi
+
 	for i in range(2*n+1):
+
 		Xi = np.array([X[i]]).T
 		sigma = sigma + W[i]*np.outer(Xi-mu,Xi.T-mu.T)
 	
@@ -294,8 +302,11 @@ def get_bin(s,W,N):
 
 	bin_edges = []
 	bin_edges.append(0)
+
 	for k in range(1,N+1):
+
 		bin_edges.append(bin_edges[k-1] + W[k-1])
+		
 		if (s >= bin_edges[k-1]):
 			if (s <= bin_edges[k]):
 				z = k-1
