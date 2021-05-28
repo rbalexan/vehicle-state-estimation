@@ -55,7 +55,7 @@ def splitFx(Fx_0,veh):
 	return Fxf, Fxr
 
 
-def simulate_step(X_0, P_0, delta_0, Fx_0, kappa, dt, veh, ftire, rtire):
+def simulate_step(X_0, P_0, delta_0, Fx_0, kappa, dt, veh, ftire, rtire, delay):
 
 	#Simple version of hard simulator. Needs additional features
 
@@ -67,6 +67,12 @@ def simulate_step(X_0, P_0, delta_0, Fx_0, kappa, dt, veh, ftire, rtire):
 	Uy_0   = X_0[1]
 	r_0    = X_0[2]
 
+	if (delay == True):
+		simulate_step.delta_hist.append(delta_0)
+		simulate_step.fx_hist.append(Fx_0)
+		delta_0 = simulate_step.delta_hist.pop(0)
+		Fx_0 = simulate_step.fx_hist.pop(0)
+   
 	#Split Fx (not checking limits yet)
 	Fxf, Fxr = splitFx(Fx_0, veh)
 
@@ -97,7 +103,8 @@ def simulate_step(X_0, P_0, delta_0, Fx_0, kappa, dt, veh, ftire, rtire):
 	P_1 = [s_1,  e_1,  dpsi_1]
 
 	return X_1, P_1, delta, Fxf, Fxr
-
+simulate_step.delta_hist = [0] * 10 #Set number of zeros to desired delay divided by dt
+simulate_step.fx_hist = [0] * 5
 
 def Fx_limits(Fx, veh, ftire, rtire):
 

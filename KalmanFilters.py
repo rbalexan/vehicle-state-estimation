@@ -67,7 +67,7 @@ class ExtendedKalmanFilter(KalmanFilters):
         #Predict
         mu_list = [prev_state[0][0], prev_state[1][0], prev_state[2][0]]
         X_1, _, delta, Fxf, Fxr = simulate_step(mu_list, np.zeros((3,1)), delta, Fx, kappa,
-            self.dt, self.veh, self.ftire, self.rtire)
+            self.dt, self.veh, self.ftire, self.rtire, False)
         mu_t01 = np.array([X_1]).T
         Sigma_t01 = J_A.dot(prev_cov).dot(J_A.T)+ self.Q
 
@@ -98,7 +98,7 @@ class IteratedExtendedKalmanFilter(KalmanFilters):
         #Predict
         mu_list = [prev_state[0][0], prev_state[1][0], prev_state[2][0]]
         X_1, _, delta, Fxf, Fxr = simulate_step(mu_list, np.zeros((3,1)), delta, Fx, kappa,
-            self.dt, self.veh, self.ftire, self.rtire)
+            self.dt, self.veh, self.ftire, self.rtire, False)
         mu_t01 = np.array([X_1]).T
         Sigma_t01 = J_A.dot(prev_cov).dot(J_A.T)+ self.Q
 
@@ -145,7 +145,7 @@ class UnscentedKalmanFilter(KalmanFilters):
         for i in range(2*n+1):
             x_list = [X_ut[i][0][0], X_ut[i][1][0], X_ut[i][2][0]]
             X_1, _, _, _, _ = simulate_step(x_list, np.zeros((3,1)), delta, Fx, kappa,
-                self.dt, self.veh, self.ftire, self.rtire)
+                self.dt, self.veh, self.ftire, self.rtire, False)
             X_bar.append(X_1)
 
         [mu_t01, sigma_t01] = UT_inv(X_bar, W_ut, self.Q, n)
@@ -198,7 +198,7 @@ class ParticleFilter(KalmanFilters):
         #Predict
         for i in range(self.N):
             X_1, _, _, _, _ = simulate_step((X_PF[i]).T, np.zeros((3,1)), delta, Fx, kappa,
-                self.dt, self.veh, self.ftire, self.rtire)
+                self.dt, self.veh, self.ftire, self.rtire, False)
             X_1     = np.array([X_1])
             X_PF[i] = X_1 + np.random.randn(1,self.n).dot(np.linalg.cholesky(self.Q))
         #print(np.shape(X_PF))

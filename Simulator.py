@@ -8,7 +8,6 @@ import scipy.io as sio
 import scipy.interpolate
 import matplotlib.pyplot as plt
 
-
 #Load vehicle and tire dicts
 veh, ftire, rtire = load_vehicle()
 
@@ -20,7 +19,11 @@ rtire = SimpleNamespace(**rtire)
 
 # Input type
 #use_data = False
-use_data = True
+use_data = False
+
+#Delay?
+delay = True
+#delay = False
 
 #Get Map
 mat_fname    = pjoin(dirname(abspath(__file__)), 'project_path.mat')
@@ -32,7 +35,7 @@ uxdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.UxDes.squeeze
 axdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.axDes.squeeze())
 
 #Get data
-mat_fname    = pjoin(dirname(abspath(__file__)), 'AA273_data.mat')
+mat_fname    = pjoin(dirname(abspath(__file__)), 'AA273_data2.mat')
 mat_contents = sio.loadmat(mat_fname)
 data         = SimpleNamespace(**mat_contents)
 
@@ -88,7 +91,7 @@ Sigma.append(np.diag([.1, .1, .1]))
 mu.append(   np.array([[1, .1, .1]]).T)
 
 
-kf = IteratedExtendedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
+kf = ExtendedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
 
 
 #Simulation Loop
@@ -121,7 +124,7 @@ for i in range(len(t_)-1):
 		
 		delta, Fx = controller(X_0, P_0, veh, ftire, rtire, path)
 		#Ground truth state (from nonlinear simulation)
-		X_1, P_1, delta, Fxf, Fxr = simulate_step(X_0, P_0, delta, Fx, kappa_[i], dt, veh, ftire, rtire)
+		X_1, P_1, delta, Fxf, Fxr = simulate_step(X_0, P_0, delta, Fx, kappa_[i], dt, veh, ftire, rtire, delay)
 		W = np.linalg.cholesky(Q).dot(np.random.randn(3,1))
 		Y = C.dot(np.array([X_1]).T+W) + np.linalg.cholesky(R).dot(np.random.randn(2,1))
 		#Append new states/inputs
