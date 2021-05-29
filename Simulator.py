@@ -43,8 +43,11 @@ t_ = np.linspace(0,t_end, int((t_end/dt)+1))
 
 #Define linear measurement model and noise covariances
 C = np.array([[1/veh.Re, 0, 0],[0, 0, 1]])
+Q = 0.001*np.diag([0.5, 0.5, .5])
+R = np.diag([0.5,deg2rad(0.5)])
+
 Q = np.diag([0.0005, .00005, .00001])
-R = np.diag([1,deg2rad(0.01**2)])
+R = 0.05*np.diag([1,deg2rad(0.01**2)])
 
 #Allocate variables
 r_ = []
@@ -72,7 +75,7 @@ Sigma = []
 
 #Initial Conditions
 r_.append(0)
-Ux_.append(0)
+Ux_.append(data.Ux[0][0])
 Uy_.append(0)
 e_.append(0.5)
 s_.append(0.1)
@@ -88,7 +91,7 @@ Sigma.append(np.diag([.1, .1, .1]))
 mu.append(np.array([[1,.1,.1]]).T)
 
 
-kf = KalmanFilters.KalmanFilters(C, Q, R, dt, veh, ftire, rtire, "iEKF")
+kf = KalmanFilters.KalmanFilters(C, Q, R, dt, veh, ftire, rtire, "EKF")
 
 
 #Simulation Loop
@@ -106,7 +109,7 @@ for i in range(len(t_)-1):
 	if (use_data):
 		r_.append(data.r[0][i]); Ux_.append(data.Ux[0][i]); Uy_.append(data.Uy[0][i]); delta_.append(data.delta[0][i]); Fx_.append(data.Fx[0][i])
 		Fxf, Fxr = splitFx(Fx_[i],veh)
-		Fxf_.append(Fxf); Fxr_.append(Fxr); s_.append(data.s[0][i]); e_.append(data.e[0][i]); dpsi_.append(data.dpsi[0][i]);
+		Fxf_.append(Fxf); Fxr_.append(Fxr); s_.append(s_[i] + data.Ux[0][i]*dt); e_.append(data.e[0][i]); dpsi_.append(data.dpsi[0][i]);
 		wheelspeed_meas = (data.LR_w[0][i] + data.RR_w[0][i])/2
 		wheelspeed_meas_list.append(wheelspeed_meas)
 		#Convert wheelspeed from mps to rad/s
@@ -133,7 +136,7 @@ Ux_est_, Uy_est_, r_est_ = convert_estimation(mu)
 
 # Plotting
 fig, axs = plt.subplots(2, 3)
-axs[0, 0].plot(s_, Ux_, 'tab:orange')
+axs[0, 0].plot( s_, Ux_, 'tab:orange')
 axs[0, 0].plot(s_, Ux_est_)
 if (use_data):
 	axs[0, 0].plot(s_[1:], wheelspeed_meas_list, 'tab:red')
