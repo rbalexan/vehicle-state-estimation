@@ -17,10 +17,12 @@ class KalmanFilters:
         self.ftire = ftire
         self.rtire = rtire
         self.n     = 3
+        self.fx_delay_sec = 0.1
+        self.delta_delay_sec = 0.05
             
 
     def run_filter(self, init_state, init_cov, measurement_data, 
-        delta_, Fx_, Fxf_, Fxr_, kappa_):
+        delta_, Fx_, Fxf_, Fxr_, kappa_, delay):
 
         num_measurements = len(measurement_data)
         num_states       = len(init_state)
@@ -39,9 +41,21 @@ class KalmanFilters:
         assert len(kappa_) == len(measurement_data) + 1
 
         for i in range(num_measurements):
+            if delay:
+                new_ind_fx = max(0,i+1 - (int(self.fx_delay_sec / self.dt)))
+                new_ind_delta = max(0,i+1 - (int(self.delta_delay_sec / self.dt)))
+                Fx = Fx_[new_ind_fx]
+                Fxf = Fxf_[new_ind_fx]
+                Fxr = Fxr_[new_ind_fx]
+                delta = delta_[new_ind_delta]
+            else:
+                Fx = Fx_[i+1]
+                Fxf = Fxf_[i+1]
+                Fxr = Fxr_[i+1]
+                delta = delta_[i+1]
             new_state, new_cov = \
                 self.run_filter_single_step(estimated_state[i], state_covariance[i],
-                measurement_data[i], delta_[i+1], Fx_[i+1], Fxf_[i+1], Fxr_[i+1], kappa_[i+1])
+                measurement_data[i], delta, Fx, Fxf, Fxr, kappa_[i+1])
             estimated_state.append(new_state)
             state_covariance.append(new_cov)
 

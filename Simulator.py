@@ -24,6 +24,7 @@ use_data = False
 #Delay?
 delay = True
 #delay = False
+assert delay == False or use_data == False
 
 #Get Map
 mat_fname    = pjoin(dirname(abspath(__file__)), 'project_path.mat')
@@ -131,7 +132,7 @@ for i in range(len(t_)-1):
 		Ux_.append(X_1[0]+W[0][0]); Uy_.append(X_1[1]+W[1][0]); r_.append(X_1[2]+W[2][0]); s_.append(P_1[0]); e_.append(P_1[1]); dpsi_.append(P_1[2]); delta_.append(delta); Fxf_.append(Fxf); Fxr_.append(Fxr)
 		Y_.append(Y); Fx_.append(Fx)
 
-mu, Sigma = kf.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_)
+mu, Sigma = kf.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_, delay)
 
 # Convert mu to list
 Ux_est_, Uy_est_, r_est_ = convert_estimation(mu)

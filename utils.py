@@ -104,7 +104,7 @@ def simulate_step(X_0, P_0, delta_0, Fx_0, kappa, dt, veh, ftire, rtire, delay):
 
 	return X_1, P_1, delta, Fxf, Fxr
 simulate_step.delta_hist = [0] * 10 #Set number of zeros to desired delay divided by dt
-simulate_step.fx_hist = [0] * 5
+simulate_step.fx_hist = [0] * 20
 
 def Fx_limits(Fx, veh, ftire, rtire):
 
