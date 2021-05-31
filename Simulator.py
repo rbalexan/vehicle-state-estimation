@@ -1,3 +1,15 @@
+"""
+Different feature toggles / ooptions to run the script:
+
+use_data: Whether to use the data from the actual car (true) or simulator
+
+delay: Whether to simulate delays and account for delays in the KF
+
+kf = ... : Type of KF to use (see comments for options) 
+
+plot_ws : Whether to also plot the wheel speed data (for debugging)
+"""
+
 import numpy as np
 from load_vehicle import *
 from utils import *
@@ -18,13 +30,15 @@ rtire = SimpleNamespace(**rtire)
 
 
 # Input type
-#use_data = False
+#use_data = True
 use_data = False
 
 #Delay?
-delay = True
-#delay = False
+#delay = True
+delay = False
 assert delay == False or use_data == False
+
+plot_ws = False
 
 #Get Map
 mat_fname    = pjoin(dirname(abspath(__file__)), 'project_path.mat')
@@ -37,6 +51,7 @@ axdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.axDes.squeeze
 
 #Get data
 mat_fname    = pjoin(dirname(abspath(__file__)), 'AA273_data2.mat')
+#mat_fname    = pjoin(dirname(abspath(__file__)), 'AA273_data_constUx.mat')
 mat_contents = sio.loadmat(mat_fname)
 data         = SimpleNamespace(**mat_contents)
 
@@ -48,7 +63,10 @@ t_    = np.linspace(0, t_end, int((t_end/dt)+1))
 #Define linear measurement model and noise covariances
 C = np.array([[1/veh.Re, 0, 0], [0, 0, 1]])
 Q = np.diag([0.0005, .00005, .00001])
-R = np.diag([1,deg2rad(0.01**2)])
+R = 0.05*np.diag([1,deg2rad(0.01**2)])
+# PF needs a different set of gains to avoid the weights going to 0.
+R_pf = np.diag([.1,deg2rad(0.01**2)])
+R_pf = np.diag([.1,deg2rad(0.1**2)])
 
 #Allocate variables
 r_     = []
@@ -65,10 +83,9 @@ Y_     = []
 Fx_    = []
 
 #Measurements
-
-Fxf_meas_       = []
-Fxr_meas_       = []
-wheelspeed_meas = []
+Fxf_meas_ = []
+Fxr_meas_ = []
+wheelspeed_meas_list = []
 
 #Handle mu this way for easy row extraction
 mu    = []
@@ -92,7 +109,11 @@ Sigma.append(np.diag([.1, .1, .1]))
 mu.append(   np.array([[1, .1, .1]]).T)
 
 
-kf = ExtendedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
+#kf = ExtendedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
+#kf = IteratedExtendedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
+#kf = UnscentedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
+kf = ParticleFilter(C, Q, R_pf, dt, veh, ftire, rtire)
+
 
 
 #Simulation Loop
@@ -112,15 +133,15 @@ for i in range(len(t_)-1):
 
 		r_.append(data.r[0][i]); Ux_.append(data.Ux[0][i]); Uy_.append(data.Uy[0][i]); delta_.append(data.delta[0][i]); Fx_.append(data.Fx[0][i])
 		Fxf, Fxr = splitFx(Fx_[i],veh)
-		Fxf_.append(Fxf); Fxr_.append(Fxr); s_.append(data.s[0][i]); e_.append(data.e[0][i]); dpsi_.append(data.dpsi[0][i])
+		Fxf_.append(Fxf); Fxr_.append(Fxr); s_.append(s_[i] + data.Ux[0][i]*dt); e_.append(data.e[0][i]); dpsi_.append(data.dpsi[0][i]);
 		wheelspeed_meas = (data.LR_w[0][i] + data.RR_w[0][i])/2
+		wheelspeed_meas_list.append(wheelspeed_meas)
 		#Convert wheelspeed from mps to rad/s
 		wheelspeed_meas = wheelspeed_meas/veh.Re
 		Y      = np.zeros([2,1])
 		Y[0,0] = wheelspeed_meas
 		Y[1,0] = r_[i]
 		Y_.append(Y)
-		
 	else:
 		
 		delta, Fx = controller(X_0, P_0, veh, ftire, rtire, path)
@@ -139,9 +160,10 @@ Ux_est_, Uy_est_, r_est_ = convert_estimation(mu)
 
 # Plotting
 fig, axs = plt.subplots(2, 3)
-
-axs[0, 0].plot(s_, Ux_, 'tab:orange')
+axs[0, 0].plot( s_, Ux_, 'tab:orange')
 axs[0, 0].plot(s_, Ux_est_)
+if (use_data and plot_ws):
+	axs[0, 0].plot(s_[1:], wheelspeed_meas_list, 'tab:red')
 axs[0, 0].set_title('Longitudinal Velocity')
 
 axs[0, 1].plot(s_, Uy_, 'tab:orange')
