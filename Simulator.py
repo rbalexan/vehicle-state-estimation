@@ -7,7 +7,7 @@ delay: Whether to simulate delays and account for delays in the KF
 
 kf = ... : Type of KF to use (see comments for options) 
 
-
+plot_ws : Whether to also plot the wheel speed data (for debugging)
 """
 
 import numpy as np
@@ -37,6 +37,8 @@ use_data = False
 #delay = True
 delay = False
 assert delay == False or use_data == False
+
+plot_ws = False
 
 #Get Map
 mat_fname    = pjoin(dirname(abspath(__file__)), 'project_path.mat')
@@ -160,7 +162,7 @@ Ux_est_, Uy_est_, r_est_ = convert_estimation(mu)
 fig, axs = plt.subplots(2, 3)
 axs[0, 0].plot( s_, Ux_, 'tab:orange')
 axs[0, 0].plot(s_, Ux_est_)
-if (use_data):
+if (use_data and plot_ws):
 	axs[0, 0].plot(s_[1:], wheelspeed_meas_list, 'tab:red')
 axs[0, 0].set_title('Longitudinal Velocity')
 
