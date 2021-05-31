@@ -1,6 +1,8 @@
 import numpy as np
 
+
 def load_vehicle():
+	
 	veh = {
 	"m": 1776,
 	"g": 9.81,
