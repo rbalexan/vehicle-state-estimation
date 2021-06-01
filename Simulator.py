@@ -31,7 +31,7 @@ rtire = SimpleNamespace(**rtire)
 
 # Input type
 #use_data = True
-use_data = False
+use_data = True
 
 #Delay?
 #delay = True
@@ -62,7 +62,7 @@ t_    = np.linspace(0, t_end, int((t_end/dt)+1))
 
 #Define linear measurement model and noise covariances
 C = np.array([[1/veh.Re, 0, 0], [0, 0, 1]])
-Q = np.diag([0.0005, .00005, .00001])
+Q = np.diag([0.0005, .0002, .00001])
 R = 0.05*np.diag([1,deg2rad(0.01**2)])
 # PF needs a different set of gains to avoid the weights going to 0.
 R_pf = np.diag([.1,deg2rad(0.01**2)])

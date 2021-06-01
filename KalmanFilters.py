@@ -199,7 +199,7 @@ class ParticleFilter(KalmanFilters):
     def __init__(self, C, Q, R, dt, veh, ftire, rtire):
 
         super().__init__(C, Q, R, dt, veh, ftire, rtire)
-        self.N = 50
+        self.N = 100
             # Should this be sampled using initial covariance?
         self.X_PF = np.linalg.cholesky(self.Q).dot(np.random.randn(self.n,self.N))
 
@@ -215,8 +215,6 @@ class ParticleFilter(KalmanFilters):
                 self.dt, self.veh, self.ftire, self.rtire, False)
             X_1     = np.array([X_1])
             X_PF[i] = X_1 + np.random.randn(1,self.n).dot(np.linalg.cholesky(self.Q))
-        #print(np.shape(X_PF))
-        #print(X_PF)
 
         #Update
         W_PF = []
@@ -228,7 +226,6 @@ class ParticleFilter(KalmanFilters):
             W_PF.append(multivariate_normal((current_meas.T-self.C.dot(X_PF[i])).T, 2, np.zeros([2,1]), self.R))
 
         W_sum = sum(W_PF)
-        #print(self.R)
         assert W_sum != 0
 
         for i in range(self.N):
