@@ -31,11 +31,11 @@ rtire = SimpleNamespace(**rtire)
 
 # Input type
 #use_data = True
-use_data = False
+use_data = True
 
 #Delay?
 #delay = True
-delay = True
+delay = False
 #assert delay == False or use_data == False
 
 plot_ws = False
@@ -117,7 +117,7 @@ mu.append(   np.array([[1, .1, .1]]).T)
 ekf = ExtendedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
 iekf = IteratedExtendedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
 ukf = UnscentedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
-#pf = ParticleFilter(C, Q, R_pf, dt, veh, ftire, rtire)
+pf = ParticleFilter(C, Q, R_pf, dt, veh, ftire, rtire)
 
 
 
@@ -161,13 +161,13 @@ for i in range(len(t_)-1):
 mu_ekf, Sigma_ekf = ekf.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_, delay)
 mu_iekf, Sigma_iekf = iekf.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_, delay)
 mu_ukf, Sigma_ukf = ukf.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_, delay)
-#mu_pf, Sigma_pf = pf.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_, delay)
+mu_pf, Sigma_pf = pf.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_, delay)
 
 # Convert mu to list
 Ux_est_ekf, Uy_est_ekf, r_est_ekf = convert_estimation(mu_ekf)
 Ux_est_iekf, Uy_est_iekf, r_est_iekf = convert_estimation(mu_iekf)
 Ux_est_ukf, Uy_est_ukf, r_est_ukf = convert_estimation(mu_ukf)
-#Ux_est_pf, Uy_est_pf, r_est_pf = convert_estimation(mu_pf)
+Ux_est_pf, Uy_est_pf, r_est_pf = convert_estimation(mu_pf)
 
 # Plotting
 
@@ -177,7 +177,7 @@ axs[0].plot( s_, Ux_, 'tab:orange')
 axs[0].plot(s_, Ux_est_ekf, 'tab:red')
 axs[0].plot(s_, Ux_est_iekf, 'tab:purple')
 axs[0].plot(s_, Ux_est_ukf, 'tab:green')
-#axs[0].plot(s_, Ux_est_pf, 'tab:blue')
+axs[0].plot(s_, Ux_est_pf, 'tab:blue')
 #if (use_data and plot_ws):
 #	axs[0, 0].plot(s_[1:], wheelspeed_meas_list, 'tab:red')
 axs[0].set_title('Longitudinal Velocity (m/s)')
@@ -188,7 +188,7 @@ axs[1].plot(s_, Uy_, 'tab:orange')
 axs[1].plot(s_, Uy_est_ekf, 'tab:red')
 axs[1].plot(s_, Uy_est_iekf, 'tab:purple')
 axs[1].plot(s_, Uy_est_ukf, 'tab:green')
-#axs[1].plot(s_, Uy_est_pf, 'tab:blue')
+axs[1].plot(s_, Uy_est_pf, 'tab:blue')
 axs[1].set_title('Lateral Velocity (m/s)')
 axs[1].set_xlabel('Distance Traveled (m)')
 
@@ -196,11 +196,11 @@ axs[1].set_xlabel('Distance Traveled (m)')
 axs[2].plot(s_, [rad2deg(x) for x in r_], 'tab:orange')
 axs[2].plot(s_, [rad2deg(x) for x in r_est_ekf], 'tab:red')
 axs[2].plot(s_, [rad2deg(x) for x in r_est_iekf], 'tab:purple')
-#axs[2].plot(s_, [rad2deg(x) for x in r_est_ukf], 'tab:green')
-#axs[2].plot(s_, [rad2deg(x) for x in r_est_pf], 'tab:blue')
+axs[2].plot(s_, [rad2deg(x) for x in r_est_ukf], 'tab:green')
+axs[2].plot(s_, [rad2deg(x) for x in r_est_pf], 'tab:blue')
 axs[2].set_title('Yaw Rate (deg/s)')
 axs[2].set_xlabel('Distance Traveled (m)')
-fig.legend(['Ground Truth (SIMULATED/DATA)', 'EKF', 'iEKF', 'UKF', 'PF'])
+fig.legend(['Ground Truth', 'EKF', 'iEKF', 'UKF', 'PF'])
 
 #plt.savefig('Allfilters_Simulated.png')
 plt.show()
