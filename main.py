@@ -14,7 +14,7 @@ ftire = SimpleNamespace(**ftire)
 rtire = SimpleNamespace(**rtire)
 
 use_data = True # Input type
-delay = False #  Delay
+delay    = False #  Delay
 
 # Time parameters
 dt    = 0.01

@@ -333,6 +333,7 @@ def multivariate_normal(x, d, mean, covariance):
 
 	return (1/(np.sqrt((2 * np.pi)**d * np.linalg.det(covariance))))*(np.exp(-((x_m.T).dot(np.linalg.inv(covariance)).dot(x_m)) / 2))
 
+
 def plot_all(s_, Ux_, Ux_est_ekf, Ux_est_iekf, Ux_est_ukf, Ux_est_pf, Uy_, Uy_est_ekf, Uy_est_iekf, Uy_est_ukf, Uy_est_pf, r_, r_est_ekf, r_est_iekf, r_est_ukf, r_est_pf):
 
 	#All filters (change legend entry for simulated vs data)
@@ -368,7 +369,9 @@ def plot_all(s_, Ux_, Ux_est_ekf, Ux_est_iekf, Ux_est_ukf, Ux_est_pf, Uy_, Uy_es
 
 	#plt.savefig('Allfilters_Simulated.png')
 	plt.show()
+	
 	return
+
 
 def plot_one(s_, Ux_, Ux_est, Uy_, Uy_est, r_, r_est, sigma):
 	#Single Filter
@@ -421,7 +424,9 @@ def plot_one(s_, Ux_, Ux_est, Uy_, Uy_est, r_, r_est, sigma):
 
 	#plt.savefig('Allfilters_Simulated.png')
 	plt.show()
+	
 	return
+
 
 def plot_error(s_, Ux_, Ux_est, Uy_, Uy_est, r_, r_est):
 	#Error
@@ -455,6 +460,7 @@ def plot_error(s_, Ux_, Ux_est, Uy_, Uy_est, r_, r_est):
 	axs[2].set_title('Error in r (deg/s)')
 
 	plt.show()
+
 	return
 
 

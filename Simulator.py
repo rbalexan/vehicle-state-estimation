@@ -22,10 +22,11 @@ import matplotlib as plt
 
 
 def Simulator(filt, mu_0, sigma_0, Q, R, use_data, delay, dt, t_end):
+
 	#Load vehicle and tire dicts
 	veh, ftire, rtire = load_vehicle()
 
-	#Convert to namespace (ie. veh.m instead of veh["m"])
+	# Convert to namespace (ie. veh.m instead of veh["m"])
 	veh   = SimpleNamespace(**veh)
 	ftire = SimpleNamespace(**ftire)
 	rtire = SimpleNamespace(**rtire)
@@ -34,7 +35,7 @@ def Simulator(filt, mu_0, sigma_0, Q, R, use_data, delay, dt, t_end):
 	plot_ws = False
 
 	#Get Map
-	mat_fname    = pjoin(dirname(abspath(__file__)), 'Data/project_path.mat')
+	mat_fname    = pjoin(dirname(abspath(__file__)), 'data/project_path.mat')
 	mat_contents = sio.loadmat(mat_fname)
 	path         = SimpleNamespace(**mat_contents)
 
@@ -43,8 +44,8 @@ def Simulator(filt, mu_0, sigma_0, Q, R, use_data, delay, dt, t_end):
 	axdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.axDes.squeeze())
 
 	#Get data
-	mat_fname    = pjoin(dirname(abspath(__file__)), 'Data/AA273_data2.mat')
-	#mat_fname    = pjoin(dirname(abspath(__file__)), 'Data/AA273_data_constUx.mat')
+	mat_fname    = pjoin(dirname(abspath(__file__)), 'data/AA273_data2.mat')
+	#mat_fname    = pjoin(dirname(abspath(__file__)), 'data/AA273_data_constUx.mat')
 	mat_contents = sio.loadmat(mat_fname)
 	data         = SimpleNamespace(**mat_contents)
 
@@ -52,7 +53,7 @@ def Simulator(filt, mu_0, sigma_0, Q, R, use_data, delay, dt, t_end):
 	t_    = np.linspace(0, t_end, int((t_end/dt)+1))
 
 	
-	#Allocate variables
+	# Allocate variables
 	r_     = []
 	Ux_    = []
 	Uy_    = []
@@ -66,21 +67,21 @@ def Simulator(filt, mu_0, sigma_0, Q, R, use_data, delay, dt, t_end):
 	Y_     = []
 	Fx_    = []
 
-	#Measurements
+	# Measurements
 	Fxf_meas_ = []
 	Fxr_meas_ = []
 	wheelspeed_meas_list = []
 
-	#Handle mu this way for easy row extraction
+	# Handle mu this way for easy row extraction
 	mu    = []
 	Sigma = []
 
-	#Initial Conditions
+	# Initial Conditions
 	r_.append(    0)
 	Ux_.append(   0)
 	Uy_.append(   0)
-	e_.append(  0.5)
-	s_.append(  0.1)
+	e_.append(    0.5)
+	s_.append(    0.1)
 	dpsi_.append( 0)
 	delta_.append(0)
 	Fxf_.append(  0)
@@ -92,17 +93,17 @@ def Simulator(filt, mu_0, sigma_0, Q, R, use_data, delay, dt, t_end):
 	Sigma.append(sigma_0) 
 	mu.append(mu_0)
 
-	#Simulation Loop
+	# Simulation Loop
 	for i in range(len(t_)-1):
 
 		# Interpolate for current curvature value
 		kappa_.append(kappa_interp(s_[i]))
 
-		#Create current state list
+		# Create current state list
 		X_0 = [Ux_[i], Uy_[i], r_[i]] #Dynamic State
 		P_0 = [s_[i],  e_[i],  dpsi_[i]] #Path state
 
-		#Get control commands (lookahead controller)
+		# Get control commands (lookahead controller)
 		# this is using the true state as we want a perfect controller
 		# tracking error doesn't matter because we are just looking at estimator performance.
 		if (use_data):
@@ -118,14 +119,15 @@ def Simulator(filt, mu_0, sigma_0, Q, R, use_data, delay, dt, t_end):
 			Y[0,0] = wheelspeed_meas
 			Y[1,0] = r_[i]
 			Y_.append(Y)
+
 		else:
 			
 			delta, Fx = controller(X_0, P_0, veh, ftire, rtire, path)
-			#Ground truth state (from nonlinear simulation)
+			# Ground truth state (from nonlinear simulation)
 			X_1, P_1, delta, Fxf, Fxr = simulate_step(X_0, P_0, delta, Fx, kappa_[i], dt, veh, ftire, rtire, delay)
 			W = np.linalg.cholesky(Q).dot(np.random.randn(3,1))
-			Y = C.dot(np.array([X_1]).T+W) + np.linalg.cholesky(R).dot(np.random.randn(2,1))
-			#Append new states/inputs
+			Y = filt.C.dot(np.array([X_1]).T+W) + np.linalg.cholesky(R).dot(np.random.randn(2,1))
+			# Append new states/inputs
 			Ux_.append(X_1[0]+W[0][0]); Uy_.append(X_1[1]+W[1][0]); r_.append(X_1[2]+W[2][0]); s_.append(P_1[0]); e_.append(P_1[1]); dpsi_.append(P_1[2]); delta_.append(delta); Fxf_.append(Fxf); Fxr_.append(Fxr)
 			Y_.append(Y); Fx_.append(Fx)
 

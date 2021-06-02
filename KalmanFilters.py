@@ -25,12 +25,11 @@ class KalmanFilters:
         num_measurements = len(measurement_data)
         num_states       = len(init_state)
 
-        # +1 because we include the initial state
-        estimated_state  = [] #np.zeros((num_states, num_measurements + 1))
-        state_covariance = [] #np.zeros((num_states, num_states, num_measurements + 1))
+        mean_hist = [] 
+        cov_hist  = [] 
 
-        estimated_state.append(init_state) #[:,0] = init_state
-        state_covariance.append(init_cov)  #[:,:,0] = init_cov
+        mean_hist.append(init_state) #[:,0] = init_state
+        cov_hist.append(init_cov)  #[:,:,0] = init_cov
 
         assert len(delta_) == len(measurement_data) + 1
         assert len(Fx_)    == len(measurement_data) + 1
@@ -39,25 +38,32 @@ class KalmanFilters:
         assert len(kappa_) == len(measurement_data) + 1
 
         for i in range(num_measurements):
-            if delay:
-                new_ind_fx = max(0,i+1 - (int(self.fx_delay_sec / self.dt)))
-                new_ind_delta = max(0,i+1 - (int(self.delta_delay_sec / self.dt)))
-                Fx = Fx_[new_ind_fx]
-                Fxf = Fxf_[new_ind_fx]
-                Fxr = Fxr_[new_ind_fx]
-                delta = delta_[new_ind_delta]
-            else:
-                Fx = Fx_[i+1]
-                Fxf = Fxf_[i+1]
-                Fxr = Fxr_[i+1]
-                delta = delta_[i+1]
-            new_state, new_cov = \
-                self.run_filter_single_step(estimated_state[i], state_covariance[i],
-                measurement_data[i], delta, Fx, Fxf, Fxr, kappa_[i+1])
-            estimated_state.append(new_state)
-            state_covariance.append(new_cov)
 
-        return estimated_state, state_covariance
+            if delay: 
+
+                new_ind_fx    = max(0, i+1 - (int(self.fx_delay_sec    / self.dt)))
+                new_ind_delta = max(0, i+1 - (int(self.delta_delay_sec / self.dt)))
+
+                Fx    = Fx_[   new_ind_fx]
+                Fxf   = Fxf_[  new_ind_fx]
+                Fxr   = Fxr_[  new_ind_fx]
+                delta = delta_[new_ind_delta]
+
+            else:
+
+                Fx    = Fx_[   i+1]
+                Fxf   = Fxf_[  i+1]
+                Fxr   = Fxr_[  i+1]
+                delta = delta_[i+1]
+
+            new_state, new_cov = \
+                self.run_filter_single_step(mean_hist[i], cov_hist[i],
+                measurement_data[i], delta, Fx, Fxf, Fxr, kappa_[i+1])
+
+            mean_hist.append(new_state)
+            cov_hist.append(new_cov)
+
+        return mean_hist, cov_hist
 
 
 
@@ -72,11 +78,11 @@ class ExtendedKalmanFilter(KalmanFilters):
     def run_filter_single_step(self, prev_state, prev_cov, current_meas, 
         delta, Fx, Fxf, Fxr, kappa):
 
-        #Calculate linearized A and B matrices
+        # Calculate linearized A and B matrices
         J_A, J_B = get_jacobian(prev_state[0][0], prev_state[1][0], prev_state[2][0], delta, Fxf, Fxr,
             self.veh, self.ftire, self.rtire, self.dt)
 
-        #Predict
+        # Predict
         mu_list = [prev_state[0][0], prev_state[1][0], prev_state[2][0]]
         X_1, _, delta, Fxf, Fxr = simulate_step(mu_list, np.zeros((3,1)), delta, Fx, kappa,
             self.dt, self.veh, self.ftire, self.rtire, False)
@@ -86,7 +92,7 @@ class ExtendedKalmanFilter(KalmanFilters):
         C = self.C
         R = self.R
 
-        #Update
+        # Update
         curr_state =    mu_t01 + Sigma_t01.dot(C.T).dot(np.linalg.inv(C.dot(Sigma_t01).dot(C.T)+R)).dot(current_meas-C.dot(mu_t01))
         curr_cov   = Sigma_t01 - Sigma_t01.dot(C.T).dot(np.linalg.inv(C.dot(Sigma_t01).dot(C.T)+R)).dot(C).dot(Sigma_t01)
 
@@ -103,11 +109,11 @@ class IteratedExtendedKalmanFilter(KalmanFilters):
     def run_filter_single_step(self, prev_state, prev_cov, current_meas, 
         delta, Fx, Fxf, Fxr, kappa):
 
-        #Calculate linearized A and B matrices
+        # Calculate linearized A and B matrices
         J_A, J_B = get_jacobian(prev_state[0][0], prev_state[1][0], prev_state[2][0], delta, Fxf, Fxr,
             self.veh, self.ftire, self.rtire, self.dt)
 
-        #Predict
+        # Predict
         mu_list = [prev_state[0][0], prev_state[1][0], prev_state[2][0]]
         X_1, _, delta, Fxf, Fxr = simulate_step(mu_list, np.zeros((3,1)), delta, Fx, kappa,
             self.dt, self.veh, self.ftire, self.rtire, False)
@@ -117,7 +123,7 @@ class IteratedExtendedKalmanFilter(KalmanFilters):
         C = self.C
         R = self.R
 
-        #Update
+        # Update
         mu_j = mu_t01
         mu_prev = 1000*mu_t01 #Arbitrary choise in mu_prev
 
