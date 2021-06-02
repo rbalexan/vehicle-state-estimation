@@ -327,3 +327,7 @@ def multivariate_normal(x, d, mean, covariance):
     """pdf of the multivariate normal distribution."""
     x_m = x - mean
     return (1/(np.sqrt((2 * np.pi)**d * np.linalg.det(covariance))))*(np.exp(-((x_m.T).dot(np.linalg.inv(covariance)).dot(x_m)) / 2))
+
+#Subtract two lists
+def Diff(li1, li2):
+    return list(set(li1) - set(li2)) + list(set(li2) - set(li1))

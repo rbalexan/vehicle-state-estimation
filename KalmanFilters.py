@@ -121,7 +121,7 @@ class IteratedExtendedKalmanFilter(KalmanFilters):
 
         #Update
         mu_j = mu_t01
-        mu_prev = 10*mu_t01 #Arbitrary choise in mu_prev
+        mu_prev = 1000*mu_t01 #Arbitrary choise in mu_prev
 
         stopping_threshold = 1 #Arbitrary choice for now, maybe pass this in later?
 
@@ -199,7 +199,7 @@ class ParticleFilter(KalmanFilters):
     def __init__(self, C, Q, R, dt, veh, ftire, rtire):
 
         super().__init__(C, Q, R, dt, veh, ftire, rtire)
-        self.N = 100
+        self.N = 75
             # Should this be sampled using initial covariance?
         self.X_PF = np.linalg.cholesky(self.Q).dot(np.random.randn(self.n,self.N))
 

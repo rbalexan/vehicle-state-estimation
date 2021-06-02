@@ -31,12 +31,12 @@ rtire = SimpleNamespace(**rtire)
 
 # Input type
 #use_data = True
-use_data = True
+use_data = False
 
 #Delay?
 #delay = True
-delay = False
-assert delay == False or use_data == False
+delay = True
+#assert delay == False or use_data == False
 
 plot_ws = False
 
@@ -57,12 +57,17 @@ data         = SimpleNamespace(**mat_contents)
 
 # Time parameters
 dt    = 0.01
-t_end = 35 #Must pick less than 39 for this data set
+t_end = 20 #Must pick less than 39 for this data set
 t_    = np.linspace(0, t_end, int((t_end/dt)+1))
 
 #Define linear measurement model and noise covariances
 C = np.array([[1/veh.Re, 0, 0], [0, 0, 1]])
-Q = np.diag([0.0005, .0002, .00001])
+
+if (use_data):
+	Q = np.diag([0.0005, .0002, .00001]) #Data
+else:
+	Q = np.diag([0.0005, .00002, .00001]) #Simulator
+
 R = 0.05*np.diag([1,deg2rad(0.01**2)])
 # PF needs a different set of gains to avoid the weights going to 0.
 R_pf = np.diag([.1,deg2rad(0.01**2)])
@@ -109,10 +114,10 @@ Sigma.append(np.diag([.1, .1, .1]))
 mu.append(   np.array([[1, .1, .1]]).T)
 
 
-#kf = ExtendedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
-#kf = IteratedExtendedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
-#kf = UnscentedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
-kf = ParticleFilter(C, Q, R_pf, dt, veh, ftire, rtire)
+ekf = ExtendedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
+iekf = IteratedExtendedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
+ukf = UnscentedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
+#pf = ParticleFilter(C, Q, R_pf, dt, veh, ftire, rtire)
 
 
 
@@ -153,34 +158,111 @@ for i in range(len(t_)-1):
 		Ux_.append(X_1[0]+W[0][0]); Uy_.append(X_1[1]+W[1][0]); r_.append(X_1[2]+W[2][0]); s_.append(P_1[0]); e_.append(P_1[1]); dpsi_.append(P_1[2]); delta_.append(delta); Fxf_.append(Fxf); Fxr_.append(Fxr)
 		Y_.append(Y); Fx_.append(Fx)
 
-mu, Sigma = kf.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_, delay)
+mu_ekf, Sigma_ekf = ekf.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_, delay)
+mu_iekf, Sigma_iekf = iekf.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_, delay)
+mu_ukf, Sigma_ukf = ukf.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_, delay)
+#mu_pf, Sigma_pf = pf.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_, delay)
 
 # Convert mu to list
-Ux_est_, Uy_est_, r_est_ = convert_estimation(mu)
+Ux_est_ekf, Uy_est_ekf, r_est_ekf = convert_estimation(mu_ekf)
+Ux_est_iekf, Uy_est_iekf, r_est_iekf = convert_estimation(mu_iekf)
+Ux_est_ukf, Uy_est_ukf, r_est_ukf = convert_estimation(mu_ukf)
+#Ux_est_pf, Uy_est_pf, r_est_pf = convert_estimation(mu_pf)
 
 # Plotting
-fig, axs = plt.subplots(2, 3)
-axs[0, 0].plot( s_, Ux_, 'tab:orange')
-axs[0, 0].plot(s_, Ux_est_)
-if (use_data and plot_ws):
-	axs[0, 0].plot(s_[1:], wheelspeed_meas_list, 'tab:red')
-axs[0, 0].set_title('Longitudinal Velocity')
 
-axs[0, 1].plot(s_, Uy_, 'tab:orange')
-axs[0, 1].plot(s_, Uy_est_)
-axs[0, 1].set_title('Lateral Velocity')
+#All filters (change legend entry for simulated vs data)
+fig, axs = plt.subplots(1, 3)
+axs[0].plot( s_, Ux_, 'tab:orange')
+axs[0].plot(s_, Ux_est_ekf, 'tab:red')
+axs[0].plot(s_, Ux_est_iekf, 'tab:purple')
+axs[0].plot(s_, Ux_est_ukf, 'tab:green')
+#axs[0].plot(s_, Ux_est_pf, 'tab:blue')
+#if (use_data and plot_ws):
+#	axs[0, 0].plot(s_[1:], wheelspeed_meas_list, 'tab:red')
+axs[0].set_title('Longitudinal Velocity (m/s)')
+axs[0].set_xlabel('Distance Traveled (m)')
 
-axs[0, 2].plot(s_, [rad2deg(x) for x in r_], 'tab:orange')
-axs[0, 2].plot(s_, [rad2deg(x) for x in r_est_])
-axs[0, 2].set_title('Yaw Rate')
 
-axs[1, 0].plot(t_, s_)
-axs[1, 0].set_title('Distance along path')
+axs[1].plot(s_, Uy_, 'tab:orange')
+axs[1].plot(s_, Uy_est_ekf, 'tab:red')
+axs[1].plot(s_, Uy_est_iekf, 'tab:purple')
+axs[1].plot(s_, Uy_est_ukf, 'tab:green')
+#axs[1].plot(s_, Uy_est_pf, 'tab:blue')
+axs[1].set_title('Lateral Velocity (m/s)')
+axs[1].set_xlabel('Distance Traveled (m)')
 
-axs[1, 1].plot(s_, e_, 'tab:red')
-axs[1, 1].set_title('Lateral Error')
 
-axs[1, 2].plot(s_, [rad2deg(x) for x in dpsi_], 'tab:purple')
-axs[1, 2].set_title('Delta Psi')
+axs[2].plot(s_, [rad2deg(x) for x in r_], 'tab:orange')
+axs[2].plot(s_, [rad2deg(x) for x in r_est_ekf], 'tab:red')
+axs[2].plot(s_, [rad2deg(x) for x in r_est_iekf], 'tab:purple')
+#axs[2].plot(s_, [rad2deg(x) for x in r_est_ukf], 'tab:green')
+#axs[2].plot(s_, [rad2deg(x) for x in r_est_pf], 'tab:blue')
+axs[2].set_title('Yaw Rate (deg/s)')
+axs[2].set_xlabel('Distance Traveled (m)')
+fig.legend(['Ground Truth (SIMULATED/DATA)', 'EKF', 'iEKF', 'UKF', 'PF'])
+
+#plt.savefig('Allfilters_Simulated.png')
+plt.show()
+
+
+#Single Filter
+#All filters (change legend entry for simulated vs data)
+fig, axs = plt.subplots(1, 3)
+axs[0].plot( s_, Ux_, 'tab:orange')
+axs[0].plot(s_, Ux_est_ekf, 'tab:blue')
+#if (use_data and plot_ws):
+#	axs[0, 0].plot(s_[1:], wheelspeed_meas_list, 'tab:red')
+axs[0].set_title('Longitudinal Velocity (m/s)')
+axs[0].set_xlabel('Distance Traveled (m)')
+
+
+axs[1].plot(s_, Uy_, 'tab:orange')
+axs[1].plot(s_, Uy_est_ekf, 'tab:blue')
+axs[1].set_title('Lateral Velocity (m/s)')
+axs[1].set_xlabel('Distance Traveled (m)')
+
+
+axs[2].plot(s_, [rad2deg(x) for x in r_], 'tab:orange')
+axs[2].plot(s_, [rad2deg(x) for x in r_est_ekf], 'tab:blue')
+
+#axs[2].plot(s_, [rad2deg(x) for x in r_est_pf], 'tab:blue')
+axs[2].set_title('Yaw Rate (deg/s)')
+axs[2].set_xlabel('Distance Traveled (m)')
+fig.legend(['Ground Truth (SIMULATED/DATA)', 'FILTER_NAME'])
+
+#plt.savefig('Allfilters_Simulated.png')
+plt.show()
+
+
+#Error
+Ux_error = []
+Uy_error = []
+r_error = []
+
+zip_object = zip(Ux_, Ux_est_ekf)
+for list1_i, list2_i in zip_object:
+    Ux_error.append(list1_i-list2_i)
+
+zip_object = zip(Uy_, Uy_est_ekf)
+for list1_i, list2_i in zip_object:
+    Uy_error.append(list1_i-list2_i)
+
+zip_object = zip(r_, r_est_ekf)
+for list1_i, list2_i in zip_object:
+    r_error.append(list1_i-list2_i)
+
+fig, axs = plt.subplots(1, 3)
+axs[0].plot( s_[50:-1], Ux_error[50:-1], 'tab:orange')
+axs[0].set_xlabel('Distance Traveled (m)')
+axs[0].set_title('Error in Ux (m/s)')
+
+axs[1].plot( s_[50:-1], Uy_error[50:-1], 'tab:orange')
+axs[1].set_xlabel('Distance Traveled (m)')
+axs[1].set_title('Error in Uy (m/s)')
+
+axs[2].plot( s_[50:-1], [rad2deg(x) for x in r_error[50:-1]], 'tab:orange')
+axs[2].set_xlabel('Distance Traveled (m)')
+axs[2].set_title('Error in r (deg/s)')
 
 plt.show()
