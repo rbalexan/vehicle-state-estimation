@@ -257,7 +257,7 @@ def convert_estimation(mu):
 	Uy = []
 	r  = []
 
-	for i, z in enumerate(mu):
+	for z in mu:
 		Ux.append(z[0][0])
 		Uy.append(z[1][0])
 		r.append( z[2][0])
@@ -296,12 +296,12 @@ def UT_inv(X, W, Q, n):
 	for i in range(2*n+1):
 
 		Xi = np.array([X[i]]).T
-		mu = mu + W[i]*Xi
+		mu += W[i]*Xi
 
 	for i in range(2*n+1):
 
-		sigma = sigma + W[i]*np.outer(Xi-mu,Xi.T-mu.T)
 		Xi    = np.array([X[i]]).T
+		sigma += W[i]*np.outer(Xi-mu,Xi.T-mu.T)
 	
 	return mu, sigma+Q
 
