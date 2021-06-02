@@ -6,7 +6,7 @@ import symengine
 
 def controller(X_0, P_0, veh, ftire, rtire, path):
 
-	#Unpack current state
+	# Unpack current state
 	s    = P_0[0]
 	e    = P_0[1]
 	dpsi = P_0[2]
@@ -14,15 +14,15 @@ def controller(X_0, P_0, veh, ftire, rtire, path):
 	Uy   = X_0[1]
 	r    = X_0[2]
 
-	#Understeer gradient
+	# Understeer gradient
 	K = ((veh.Wf/ftire.Ca_lin)-(veh.Wr/rtire.Ca_lin))/veh.g
 
-	#Gains
+	# Gains
 	K_la   = 3000
 	x_la   = 8
 	K_long = 3200
 
-	#Interpolations
+	# Interpolations
 	kappa_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.k_1pm.squeeze())
 	Uxdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.UxDes.squeeze())
 	Axdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.axDes.squeeze())
@@ -30,21 +30,21 @@ def controller(X_0, P_0, veh, ftire, rtire, path):
 	Uxdes = Uxdes_interp(s)
 	Axdes = Axdes_interp(s)
 
-	#Lookahead lateral control
+	# Lookahead lateral control
 	dpsi_ss  = kappa*((veh.m*veh.a*Ux**2)/(veh.L*rtire.Ca_lin)-veh.b)
 	delta_ff = (K_la*x_la/ftire.Ca_lin)*dpsi_ss+kappa*(veh.L+K*Ux**2)
 	delta    = (-K_la*(e+x_la*dpsi)/ftire.Ca_lin)+delta_ff 
 
-	#Longitudinal control
+	# Longitudinal control
 	F_drag = veh.cdA*veh.rho*(1/2)*Ux**2
 	Fx     = veh.m*Axdes+veh.frr+F_drag+K_long*(Uxdes-Ux)
 
 	return delta, Fx
 
 
-def splitFx(Fx_0,veh):
+def splitFx(Fx_0, veh):
 
-	#Split Fx (not checking limits yet)
+	# Split Fx (not checking limits yet)
 	if (Fx_0 > 0):
 		Fxf = Fx_0
 		Fxr = 0
@@ -57,9 +57,9 @@ def splitFx(Fx_0,veh):
 
 def simulate_step(X_0, P_0, delta_0, Fx_0, kappa, dt, veh, ftire, rtire, delay):
 
-	#Simple version of hard simulator. Needs additional features
+	# Simple version of hard simulator. Needs additional features
 
-	#Unpack current state
+	# Unpack current state
 	s_0    = P_0[0]
 	e_0    = P_0[1]
 	dpsi_0 = P_0[2]
@@ -71,25 +71,25 @@ def simulate_step(X_0, P_0, delta_0, Fx_0, kappa, dt, veh, ftire, rtire, delay):
 		simulate_step.delta_hist.append(delta_0)
 		simulate_step.fx_hist.append(Fx_0)
 		delta_0 = simulate_step.delta_hist.pop(0)
-		Fx_0 = simulate_step.fx_hist.pop(0)
+		Fx_0    = simulate_step.fx_hist.pop(0)
    
-	#Split Fx (not checking limits yet)
+	# Split Fx (not checking limits yet)
 	Fxf, Fxr = splitFx(Fx_0, veh)
 
 	delta = delta_0
 
-	#Weight Transfer
+	# Weight Transfer
 	Wf = veh.Wf - veh.hcg*(Fxf+Fxr)/veh.L
 	Wr = veh.Wr + veh.hcg*(Fxf+Fxr)/veh.L
 
-	#Slip Angles
+	# Slip Angles
 	alpha_f, alpha_r = slip_angles(Ux_0, Uy_0, r_0, delta, veh)
 
-	#Fiala lateral tire forces
+	# Fiala lateral tire forces
 	Fyf = Fy_CoupledFiala(alpha_f, Wf, Fxf, ftire)
 	Fyr = Fy_CoupledFiala(alpha_r, Wr, Fxr, rtire)
 
-	#Get state derivatives
+	# Get state derivatives
 	Ux_dot, Uy_dot, r_dot, s_dot, e_dot, dpsi_dot = nonlinear_bicycle_model(Fyf, Fyr, Fxf, Fxr, Ux_0, Uy_0, r_0, e_0, dpsi_0, delta, kappa, veh)
 	
 	Ux_1   = integrate_euler(Ux_0,   Ux_dot,   dt)
@@ -103,12 +103,14 @@ def simulate_step(X_0, P_0, delta_0, Fx_0, kappa, dt, veh, ftire, rtire, delay):
 	P_1 = [s_1,  e_1,  dpsi_1]
 
 	return X_1, P_1, delta, Fxf, Fxr
+
+#  I think these lines of code are misplaced!!	
 simulate_step.delta_hist = [0] * 10 #Set number of zeros to desired delay divided by dt
 simulate_step.fx_hist = [0] * 20
 
 def Fx_limits(Fx, veh, ftire, rtire):
 
-	#FX_LIMITS Calculates limited longitudinal tire force including friction and engine limits
+	# Calculates limited longitudinal tire force including friction and engine limits
 	if (Fx) < 0 :
 		Fx_f = veh.brake_prop_front*Fx
 		Fx_r = veh.brake_prop_rear *Fx
@@ -137,12 +139,12 @@ def slip_angles(Ux, Uy, r, delta, veh):
 
 def nonlinear_bicycle_model(Fyf, Fyr, Fxf, Fxr, Ux, Uy, r, e, dpsi, delta, kappa, veh):
 
-	Ux_dot = (1/veh.m) *(Fxr+Fxf*math.cos(delta)-Fyf*math.sin(delta)-veh.frr*veh.m*veh.g-0.5*veh.rho*veh.cdA*Ux**2)+r*Uy
-	Uy_dot = (1/veh.m) *(Fyf*math.cos(delta)+Fyr+Fxf*math.sin(delta))-r*Ux
-	r_dot  = (1/veh.Iz)*(veh.a*Fyf*math.cos(delta)+veh.a*Fxf*math.sin(delta)-veh.b*Fyr)
+	Ux_dot = (1/veh.m) *(      Fxf*math.cos(delta) -       Fyf*math.sin(delta) +       Fxr - veh.frr*veh.m*veh.g - 0.5*veh.rho*veh.cdA*Ux**2)+r*Uy
+	Uy_dot = (1/veh.m) *(      Fxf*math.sin(delta) +       Fyf*math.cos(delta) +       Fyr)                                                  -r*Ux
+	r_dot  = (1/veh.Iz)*(veh.a*Fxf*math.sin(delta) + veh.a*Fyf*math.cos(delta) - veh.b*Fyr)
 
-	s_dot    = (1/(1-e*kappa))*(Ux*math.cos(dpsi)-Uy*math.sin(dpsi))
-	e_dot    = Uy*math.cos(dpsi) + Ux*math.sin(dpsi)
+	s_dot    = (1/(1-e*kappa))*(Ux*math.cos(dpsi) - Uy*math.sin(dpsi))
+	e_dot    =                  Ux*math.sin(dpsi) + Uy*math.cos(dpsi)
 	dpsi_dot = r-kappa*s_dot
 
 	return Ux_dot, Uy_dot, r_dot, s_dot, e_dot, dpsi_dot
@@ -157,20 +159,20 @@ def integrate_euler(x0, x0_dot, dt):
 
 def Fy_CoupledFiala(alpha, Fz, Fx, tire):
 
-	#Unpack params
+	# Unpack params
 	mup = tire.mu
 	Ca  = tire.Cy
 
-	#Calculate derating parameter
+	# Calculate derating parameter
 	inside = (mup*Fz)**2 - Fx**2
 	inside = max(0,inside)
 	
 	zeta = math.sqrt(inside)/(mup*Fz)
 
-	#Calculate sliding slip angle
+	# Calculate sliding slip angle
 	asl  = math.atan(3*zeta*mup*Fz/Ca)
 
-	#Calculate lateral force
+	# Calculate lateral force
 	if (abs(alpha)<asl):
 		Fy = -Ca*math.tan(alpha) + (Ca**2/(3*zeta*mup*Fz)) * abs(math.tan(alpha))*math.tan(alpha) - (Ca**3/(27*zeta**2*mup**2*Fz**2))*math.tan(alpha)**3
 	else:
@@ -217,13 +219,13 @@ def get_jacobian(Ux_0, Uy_0, r_0, delta_0, Fxf_0, Fxr_0, veh, ftire, rtire, dt):
 		for j, s in enumerate(inputs):
 			J_B[i,j] = dt*symengine.diff(fi, s)
 
-	#Substitute in current state
+	# Substitute in current state
 	J_A = J_A.subs(states, [Ux_0,    Uy_0,  r_0])
 	J_A = J_A.subs(inputs, [delta_0, Fxf_0, Fxr_0])
 	J_B = J_B.subs(states, [Ux_0,    Uy_0,  r_0])
 	J_B = J_B.subs(inputs, [delta_0, Fxf_0, Fxr_0])
 
-	#Convert to numpy
+	# Convert to numpy
 	J_A = np.array(J_A).astype(np.float64)
 	J_B = np.array(J_B).astype(np.float64)
 
@@ -232,21 +234,22 @@ def get_jacobian(Ux_0, Uy_0, r_0, delta_0, Fxf_0, Fxr_0, veh, ftire, rtire, dt):
 
 def EKF_step(X_0, P_0, Y, delta, Fx, Fxf, Fxr, kappa, dt, veh, ftire, rtire, Sigma_0, C, Q, R):
 
-	#Calculate linearized A and B matrices
+	# Calculate linearized A and B matrices
 	J_A, J_B = get_jacobian(X_0[0][0], X_0[1][0], X_0[2][0], delta, Fxf, Fxr, veh, ftire, rtire, dt)
 
-	#Predict
+	# Predict
 	mu_list = [X_0[0][0], X_0[1][0], X_0[2][0]]
 	X_1, P_1, delta, Fxf, Fxr = simulate_step(mu_list, P_0, delta, Fx, kappa, dt, veh, ftire, rtire)
 	mu_t01 = np.array([X_1]).T
 	Sigma_t01 = J_A.dot(Sigma_0).dot(J_A.T)+Q
 
-	#Update
+	# Update
 	mu_1    = mu_t01    + Sigma_t01.dot(C.T).dot(np.linalg.inv(C.dot(Sigma_t01).dot(C.T)+R)).dot(Y-C.dot(mu_t01))
 	Sigma_1 = Sigma_t01 - Sigma_t01.dot(C.T).dot(np.linalg.inv(C.dot(Sigma_t01).dot(C.T)+R)).dot(C).dot(Sigma_t01)
 
 
 	return mu_1, Sigma_1
+
 
 def convert_estimation(mu):
 
@@ -285,9 +288,9 @@ def UT(mu, sigma, lam, n):
 	return X, W
 
 
-def UT_inv(X,W,Q,n):
+def UT_inv(X, W, Q, n):
 
-	mu = np.zeros((n, 1))
+	mu    = np.zeros((n, 1))
 	sigma = np.zeros((n, n))
 
 	for i in range(2*n+1):
@@ -297,27 +300,26 @@ def UT_inv(X,W,Q,n):
 
 	for i in range(2*n+1):
 
-		Xi = np.array([X[i]]).T
 		sigma = sigma + W[i]*np.outer(Xi-mu,Xi.T-mu.T)
+		Xi    = np.array([X[i]]).T
 	
 	return mu, sigma+Q
 
 
-#NOTE: UNTESTED
-#For PF resampling
-def get_bin(s,W,N):
+# NOTE: UNTESTED
+# For PF resampling
+def get_bin(s, W, N):
 
 	bin_edges = []
 	bin_edges.append(0)
 
-	for k in range(1,N+1):
+	for k in range(1, N+1):
 
 		bin_edges.append(bin_edges[k-1] + W[k-1])
 		
-		if (s >= bin_edges[k-1]):
-			if (s <= bin_edges[k]):
-				z = k-1
-				break
+		if s >= bin_edges[k-1] and s <= bin_edges[k]:
+			z = k-1
+			break
 
 	return z
 
@@ -326,8 +328,11 @@ def multivariate_normal(x, d, mean, covariance):
 	
     """pdf of the multivariate normal distribution."""
     x_m = x - mean
+
     return (1/(np.sqrt((2 * np.pi)**d * np.linalg.det(covariance))))*(np.exp(-((x_m.T).dot(np.linalg.inv(covariance)).dot(x_m)) / 2))
 
-#Subtract two lists
+
+# Subtract two lists
 def Diff(li1, li2):
+
     return list(set(li1) - set(li2)) + list(set(li2) - set(li1))

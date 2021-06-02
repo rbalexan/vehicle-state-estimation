@@ -73,7 +73,7 @@ R = 0.05*np.diag([1,deg2rad(0.01**2)])
 R_pf = np.diag([.1,deg2rad(0.01**2)])
 R_pf = np.diag([.1,deg2rad(0.1**2)])
 
-#Allocate variables
+# Allocate variables
 r_     = []
 Ux_    = []
 Uy_    = []
@@ -87,16 +87,16 @@ kappa_ = []
 Y_     = []
 Fx_    = []
 
-#Measurements
+# Measurements
 Fxf_meas_ = []
 Fxr_meas_ = []
 wheelspeed_meas_list = []
 
-#Handle mu this way for easy row extraction
+# Handle mu this way for easy row extraction
 mu    = []
 Sigma = []
 
-#Initial Conditions
+# Initial Conditions
 r_.append(    0)
 Ux_.append(   0)
 Uy_.append(   0)
@@ -114,10 +114,10 @@ Sigma.append(np.diag([.1, .1, .1]))
 mu.append(   np.array([[1, .1, .1]]).T)
 
 
-ekf = ExtendedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
-iekf = IteratedExtendedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
-ukf = UnscentedKalmanFilter(C, Q, R, dt, veh, ftire, rtire)
-pf = ParticleFilter(C, Q, R_pf, dt, veh, ftire, rtire)
+ekf  = ExtendedKalmanFilter(        C, Q, R,    dt, veh, ftire, rtire)
+iekf = IteratedExtendedKalmanFilter(C, Q, R,    dt, veh, ftire, rtire)
+ukf  = UnscentedKalmanFilter(       C, Q, R,    dt, veh, ftire, rtire)
+pf   = ParticleFilter(              C, Q, R_pf, dt, veh, ftire, rtire)
 
 
 
