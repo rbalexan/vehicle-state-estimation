@@ -41,7 +41,7 @@ delay = False
 plot_ws = False
 
 #Get Map
-mat_fname    = pjoin(dirname(abspath(__file__)), 'project_path.mat')
+mat_fname    = pjoin(dirname(abspath(__file__)), 'data/project_path.mat')
 mat_contents = sio.loadmat(mat_fname)
 path         = SimpleNamespace(**mat_contents)
 
@@ -50,8 +50,8 @@ uxdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.UxDes.squeeze
 axdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.axDes.squeeze())
 
 #Get data
-mat_fname    = pjoin(dirname(abspath(__file__)), 'AA273_data2.mat')
-#mat_fname    = pjoin(dirname(abspath(__file__)), 'AA273_data_constUx.mat')
+mat_fname    = pjoin(dirname(abspath(__file__)), 'data/AA273_data2.mat')
+#mat_fname    = pjoin(dirname(abspath(__file__)), 'data/AA273_data_constUx.mat')
 mat_contents = sio.loadmat(mat_fname)
 data         = SimpleNamespace(**mat_contents)
 
