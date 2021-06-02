@@ -68,7 +68,7 @@ def plot_one(s_, Ux_, Ux_est, Uy_, Uy_est, r_, r_est, sigma):
 	fig, axs = plt.subplots(1, 3)
 	axs[0].plot(s_, Ux_, 'tab:orange')
 	axs[0].plot(s_, Ux_est, 'tab:blue')
-	axs[0].fill_between(s_, Ux_lower_ci, Ux_upper_ci, color='b', alpha=.2)
+	axs[0].fill_between(s_[50:-1], Ux_lower_ci[50:-1], Ux_upper_ci[50:-1], color='b', alpha=.2)
 	#if (use_data and plot_ws):
 	#   axs[0, 0].plot(s_[1:], wheelspeed_meas_list, 'tab:red')
 	axs[0].set_title('Longitudinal Velocity (m/s)')
@@ -77,14 +77,14 @@ def plot_one(s_, Ux_, Ux_est, Uy_, Uy_est, r_, r_est, sigma):
 
 	axs[1].plot(s_, Uy_, 'tab:orange')
 	axs[1].plot(s_, Uy_est, 'tab:blue')
-	axs[1].fill_between(s_, Uy_lower_ci, Uy_upper_ci, color='b', alpha=.2)
+	axs[1].fill_between(s_[50:-1], Uy_lower_ci[50:-1], Uy_upper_ci[50:-1], color='b', alpha=.2)
 	axs[1].set_title('Lateral Velocity (m/s)')
 	axs[1].set_xlabel('Distance Traveled (m)')
 
 
 	axs[2].plot(s_, [rad2deg(x) for x in r_], 'tab:orange')
 	axs[2].plot(s_, [rad2deg(x) for x in r_est], 'tab:blue')
-	axs[2].fill_between(s_, r_lower_ci, r_upper_ci, color='b', alpha=.2)
+	axs[2].fill_between(s_[50:-1], [rad2deg(x) for x in r_lower_ci[50:-1]], [rad2deg(x) for x in r_upper_ci[50:-1]], color='b', alpha=.2)
 	axs[2].set_title('Yaw Rate (deg/s)')
 	axs[2].set_xlabel('Distance Traveled (m)')
 	fig.legend(['Ground Truth', 'Filtered'])
