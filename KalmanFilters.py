@@ -4,10 +4,10 @@ from utils import *
 
 class KalmanFilters:
 
-    def __init__(self, C, Q, R, dt, veh, ftire, rtire):
+    def __init__(self, Q, R, dt, veh, ftire, rtire):
         
         #Define linear measurement model and noise covariances
-        self.C     = C
+        self.C     = np.array([[1/veh.Re, 0, 0], [0, 0, 1]])
         self.Q     = Q
         self.R     = R
         self.dt    = dt
@@ -25,12 +25,11 @@ class KalmanFilters:
         num_measurements = len(measurement_data)
         num_states       = len(init_state)
 
-        # +1 because we include the initial state
         mean_hist = [] 
         cov_hist  = [] 
 
-        mean_hist.append(init_state) 
-        cov_hist.append( init_cov)  
+        mean_hist.append(init_state) #[:,0] = init_state
+        cov_hist.append(init_cov)  #[:,:,0] = init_cov
 
         assert len(delta_) == len(measurement_data) + 1
         assert len(Fx_)    == len(measurement_data) + 1
@@ -40,7 +39,7 @@ class KalmanFilters:
 
         for i in range(num_measurements):
 
-            if delay:
+            if delay: 
 
                 new_ind_fx    = max(0, i+1 - (int(self.fx_delay_sec    / self.dt)))
                 new_ind_delta = max(0, i+1 - (int(self.delta_delay_sec / self.dt)))
@@ -49,7 +48,7 @@ class KalmanFilters:
                 Fxf   = Fxf_[  new_ind_fx]
                 Fxr   = Fxr_[  new_ind_fx]
                 delta = delta_[new_ind_delta]
-                
+
             else:
 
                 Fx    = Fx_[   i+1]
@@ -57,12 +56,12 @@ class KalmanFilters:
                 Fxr   = Fxr_[  i+1]
                 delta = delta_[i+1]
 
-            new_mean, new_cov = \
+            new_state, new_cov = \
                 self.run_filter_single_step(mean_hist[i], cov_hist[i],
                 measurement_data[i], delta, Fx, Fxf, Fxr, kappa_[i+1])
-                
-            mean_hist.append(new_mean)
-            cov_hist.append( new_cov)
+
+            mean_hist.append(new_state)
+            cov_hist.append(new_cov)
 
         return mean_hist, cov_hist
 
@@ -70,9 +69,9 @@ class KalmanFilters:
 
 class ExtendedKalmanFilter(KalmanFilters):
 
-    def __init__(self, C, Q, R, dt, veh, ftire, rtire):
+    def __init__(self, Q, R, dt, veh, ftire, rtire):
 
-        super().__init__(C, Q, R, dt, veh, ftire, rtire)
+        super().__init__(Q, R, dt, veh, ftire, rtire)
     
         
     # TODO : Consolidate the last 9 arguments to a dict
@@ -102,9 +101,9 @@ class ExtendedKalmanFilter(KalmanFilters):
 
 class IteratedExtendedKalmanFilter(KalmanFilters):
 
-    def __init__(self, C, Q, R, dt, veh, ftire, rtire):
+    def __init__(self, Q, R, dt, veh, ftire, rtire):
 
-        super().__init__(C, Q, R, dt, veh, ftire, rtire)
+        super().__init__(Q, R, dt, veh, ftire, rtire)
     
     
     def run_filter_single_step(self, prev_state, prev_cov, current_meas, 
@@ -144,9 +143,9 @@ class IteratedExtendedKalmanFilter(KalmanFilters):
 
 class UnscentedKalmanFilter(KalmanFilters):
 
-    def __init__(self, C, Q, R, dt, veh, ftire, rtire):
+    def __init__(self, Q, R, dt, veh, ftire, rtire):
 
-        super().__init__(C, Q, R, dt, veh, ftire, rtire)
+        super().__init__(Q, R, dt, veh, ftire, rtire)
         self.lam = 2
 
 
@@ -156,11 +155,11 @@ class UnscentedKalmanFilter(KalmanFilters):
         lam = self.lam
         n   = self.n
 
-        # Compute UT
+        #Compute UT
         X_ut, W_ut = UT(prev_state, prev_cov, lam, n)
         X_bar      = []
 
-        # Predict
+        #Predict
         for i in range(2*n+1):
             x_list = [X_ut[i][0][0], X_ut[i][1][0], X_ut[i][2][0]]
             X_1, _, _, _, _ = simulate_step(x_list, np.zeros((3,1)), delta, Fx, kappa,
@@ -169,7 +168,7 @@ class UnscentedKalmanFilter(KalmanFilters):
 
         [mu_t01, sigma_t01] = UT_inv(X_bar, W_ut, self.Q, n)
 
-        # Update
+        #Update
         [X_ut, W_ut] = UT(mu_t01, sigma_t01, lam, n)
         
         y_hat        = 0
@@ -201,9 +200,9 @@ class UnscentedKalmanFilter(KalmanFilters):
 
 class ParticleFilter(KalmanFilters):
 
-    def __init__(self, C, Q, R, dt, veh, ftire, rtire):
+    def __init__(self, Q, R, dt, veh, ftire, rtire):
 
-        super().__init__(C, Q, R, dt, veh, ftire, rtire)
+        super().__init__(Q, R, dt, veh, ftire, rtire)
         self.N = 75
             # Should this be sampled using initial covariance?
         self.X_PF = np.linalg.cholesky(self.Q).dot(np.random.randn(self.n,self.N))
@@ -214,14 +213,14 @@ class ParticleFilter(KalmanFilters):
             
         X_PF = self.X_PF.T # 5x3
 
-        # Predict
+        #Predict
         for i in range(self.N):
             X_1, _, _, _, _ = simulate_step((X_PF[i]).T, np.zeros((3,1)), delta, Fx, kappa,
                 self.dt, self.veh, self.ftire, self.rtire, False)
             X_1     = np.array([X_1])
             X_PF[i] = X_1 + np.random.randn(1,self.n).dot(np.linalg.cholesky(self.Q))
 
-        # Update
+        #Update
         W_PF = []
         for i in range(self.N):
             #print(i)
@@ -238,13 +237,13 @@ class ParticleFilter(KalmanFilters):
 
         #print(W_PF)
 
-        # Resample
+        #Resample
         X_PF_new = X_PF
 
         for i in range(self.N):
 
-            s = np.random.uniform(0, 1, 1)
-            z = get_bin(s, W_PF, self.N)
+            s = np.random.uniform(0,1,1)
+            z = get_bin(s,W_PF,self.N)
             X_PF_new[i] = X_PF[z]
 
         X_PF = X_PF_new
