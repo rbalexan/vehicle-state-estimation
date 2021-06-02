@@ -1,6 +1,7 @@
 from Simulator import *
 import numpy as np
 from load_vehicle import *
+from plots import *
 from utils import *
 from types import SimpleNamespace
 
@@ -13,8 +14,18 @@ veh   = SimpleNamespace(**veh)
 ftire = SimpleNamespace(**ftire)
 rtire = SimpleNamespace(**rtire)
 
-use_data = True # Input type
+use_data = True
 delay    = False #  Delay
+
+# Get Map
+mat_fname    = pjoin(dirname(abspath(__file__)), 'data/project_path.mat')
+mat_contents = sio.loadmat(mat_fname)
+path         = SimpleNamespace(**mat_contents)
+
+#Get data
+mat_fname    = pjoin(dirname(abspath(__file__)), 'data/AA273_data2.mat') # 'data/AA273_data_constUx.mat'
+mat_contents = sio.loadmat(mat_fname)
+data         = SimpleNamespace(**mat_contents)
 
 # Time parameters
 dt    = 0.01
@@ -32,21 +43,21 @@ mu = np.array([[1, .1, .1]]).T
 
 #  Create Filter Objects
 filt = ExtendedKalmanFilter(Q, R, dt, veh, ftire, rtire)
-Ux_est_ekf, Uy_est_ekf, r_est_ekf, s_, Ux_, Uy_, r_, Sigma_ekf = Simulator(filt, mu, sigma, Q, R, use_data, delay, dt, t_end)
+Ux_est_ekf, Uy_est_ekf, r_est_ekf, s_, Ux_, Uy_, r_, Sigma_ekf = Simulator(filt, mu, sigma, Q, R, path, delay, dt, t_end, data=data)
 												
-filt = IteratedExtendedKalmanFilter(Q, R, dt, veh, ftire, rtire)
-Ux_est_iekf, Uy_est_iekf, r_est_iekf, s_, Ux_, Uy_, r_, Sigma_iekf = Simulator(filt, mu, sigma, Q, R, use_data, delay, dt, t_end)
+# filt = IteratedExtendedKalmanFilter(Q, R, dt, veh, ftire, rtire)
+# Ux_est_iekf, Uy_est_iekf, r_est_iekf, s_, Ux_, Uy_, r_, Sigma_iekf = Simulator(filt, mu, sigma, Q, R, path, delay, dt, t_end, data=data)
 
-filt = UnscentedKalmanFilter(Q, R, dt, veh, ftire, rtire)
-Ux_est_ukf, Uy_est_ukf, r_est_ukf, s_, Ux_, Uy_, r_, Sigma_ukf = Simulator(filt, mu, sigma, Q, R, use_data, delay, dt, t_end)
+# filt = UnscentedKalmanFilter(Q, R, dt, veh, ftire, rtire)
+# Ux_est_ukf, Uy_est_ukf, r_est_ukf, s_, Ux_, Uy_, r_, Sigma_ukf = Simulator(filt, mu, sigma, Q, R, path, delay, dt, t_end, data=data)
 
-filt = ParticleFilter(Q, R_pf, dt, veh, ftire, rtire)
-Ux_est_pf, Uy_est_pf, r_est_pf, s_, Ux_, Uy_, r_, Sigma_pf = Simulator(filt, mu, sigma, Q, R, use_data, delay, dt, t_end)
+# filt = ParticleFilter(Q, R_pf, dt, veh, ftire, rtire)
+# Ux_est_pf, Uy_est_pf, r_est_pf, s_, Ux_, Uy_, r_, Sigma_pf = Simulator(filt, mu, sigma, Q, R, path, delay, dt, t_end, data=data)
 
 
 
 # Plotting
-plot_all(s_, Ux_, Ux_est_ekf, Ux_est_iekf, Ux_est_ukf, Ux_est_pf, Uy_, Uy_est_ekf, Uy_est_iekf, Uy_est_ukf, Uy_est_pf, r_, r_est_ekf, r_est_iekf, r_est_ukf, r_est_pf)
+# plot_all(s_, Ux_, Ux_est_ekf, Ux_est_iekf, Ux_est_ukf, Ux_est_pf, Uy_, Uy_est_ekf, Uy_est_iekf, Uy_est_ukf, Uy_est_pf, r_, r_est_ekf, r_est_iekf, r_est_ukf, r_est_pf)
 
 plot_one(s_, Ux_, Ux_est_ekf, Uy_, Uy_est_ekf, r_, r_est_ekf, Sigma_ekf)
 

@@ -6,8 +6,6 @@ use_data: Whether to use the data from the actual car (true) or simulator
 delay: Whether to simulate delays and account for delays in the KF
 
 kf = ... : Type of KF to use (see comments for options) 
-
-plot_ws : Whether to also plot the wheel speed data (for debugging)
 """
 
 import numpy as np
@@ -21,33 +19,19 @@ import scipy.interpolate
 import matplotlib as plt
 
 
-def Simulator(filt, mu_0, sigma_0, Q, R, use_data, delay, dt, t_end):
+def Simulator(filt, mu_0, sigma_0, Q, R, path, delay, dt, t_end, data=None):
+
+	use_data = (data is None)
 
 	#Load vehicle and tire dicts
-	veh, ftire, rtire = load_vehicle()
+	veh   = filt.veh
+	ftire = filt.ftire
+	rtire = filt.rtire
 
-	# Convert to namespace (ie. veh.m instead of veh["m"])
-	veh   = SimpleNamespace(**veh)
-	ftire = SimpleNamespace(**ftire)
-	rtire = SimpleNamespace(**rtire)
-
-
-	plot_ws = False
-
-	#Get Map
-	mat_fname    = pjoin(dirname(abspath(__file__)), 'data/project_path.mat')
-	mat_contents = sio.loadmat(mat_fname)
-	path         = SimpleNamespace(**mat_contents)
 
 	kappa_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.k_1pm.squeeze())
 	uxdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.UxDes.squeeze())
 	axdes_interp = scipy.interpolate.interp1d(path.s_m.squeeze(), path.axDes.squeeze())
-
-	#Get data
-	mat_fname    = pjoin(dirname(abspath(__file__)), 'data/AA273_data2.mat')
-	#mat_fname    = pjoin(dirname(abspath(__file__)), 'data/AA273_data_constUx.mat')
-	mat_contents = sio.loadmat(mat_fname)
-	data         = SimpleNamespace(**mat_contents)
 
 	#Time vector
 	t_    = np.linspace(0, t_end, int((t_end/dt)+1))
@@ -68,8 +52,6 @@ def Simulator(filt, mu_0, sigma_0, Q, R, use_data, delay, dt, t_end):
 	Fx_    = []
 
 	# Measurements
-	Fxf_meas_ = []
-	Fxr_meas_ = []
 	wheelspeed_meas_list = []
 
 	# Handle mu this way for easy row extraction
@@ -106,7 +88,7 @@ def Simulator(filt, mu_0, sigma_0, Q, R, use_data, delay, dt, t_end):
 		# Get control commands (lookahead controller)
 		# this is using the true state as we want a perfect controller
 		# tracking error doesn't matter because we are just looking at estimator performance.
-		if (use_data):
+		if use_data:
 
 			r_.append(data.r[0][i]); Ux_.append(data.Ux[0][i]); Uy_.append(data.Uy[0][i]); delta_.append(data.delta[0][i]); Fx_.append(data.Fx[0][i])
 			Fxf, Fxr = splitFx(Fx_[i],veh)

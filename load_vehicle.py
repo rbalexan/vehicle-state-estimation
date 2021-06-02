@@ -1,6 +1,3 @@
-import numpy as np
-
-
 def load_vehicle():
 	
 	veh = {
@@ -37,6 +34,4 @@ def load_vehicle():
 	"mu": 0.91}
 
 	return veh, ftire, rtire
-
-
 	
