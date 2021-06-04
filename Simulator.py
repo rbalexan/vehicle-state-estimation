@@ -19,9 +19,9 @@ import scipy.interpolate
 import matplotlib as plt
 
 
-def Simulator(filt, mu_0, sigma_0, Q, R, path, delay, dt, t_end, data=None):
+def Simulator(filt, mu_0, sigma_0, Q, R, path, delay_sim, delay_filter, dt, t_end, data=None):
 
-	use_data = (data is None)
+	use_data = (data is not None)
 
 	#Load vehicle and tire dicts
 	veh   = filt.veh
@@ -106,14 +106,14 @@ def Simulator(filt, mu_0, sigma_0, Q, R, path, delay, dt, t_end, data=None):
 			
 			delta, Fx = controller(X_0, P_0, veh, ftire, rtire, path)
 			# Ground truth state (from nonlinear simulation)
-			X_1, P_1, delta, Fxf, Fxr = simulate_step(X_0, P_0, delta, Fx, kappa_[i], dt, veh, ftire, rtire, delay)
+			X_1, P_1, delta, Fxf, Fxr = simulate_step(X_0, P_0, delta, Fx, kappa_[i], dt, veh, ftire, rtire, delay_sim)
 			W = np.linalg.cholesky(Q).dot(np.random.randn(3,1))
 			Y = filt.C.dot(np.array([X_1]).T+W) + np.linalg.cholesky(R).dot(np.random.randn(2,1))
 			# Append new states/inputs
 			Ux_.append(X_1[0]+W[0][0]); Uy_.append(X_1[1]+W[1][0]); r_.append(X_1[2]+W[2][0]); s_.append(P_1[0]); e_.append(P_1[1]); dpsi_.append(P_1[2]); delta_.append(delta); Fxf_.append(Fxf); Fxr_.append(Fxr)
 			Y_.append(Y); Fx_.append(Fx)
 
-	mu_, Sigma_ = filt.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_, delay)
+	mu_, Sigma_ = filt.run_filter(mu[0], Sigma[0], Y_, delta_, Fx_, Fxf_, Fxr_, kappa_, delay_filter)
 	
 	# Convert mu to list
 	Ux_est_, Uy_est_, r_est_ = convert_estimation(mu_)
