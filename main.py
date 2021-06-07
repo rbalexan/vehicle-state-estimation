@@ -31,6 +31,7 @@ data         = SimpleNamespace(**mat_contents)
 # Time parameters
 dt    = 0.01
 t_end = 20 #Must pick less than 39 for this data set
+t_vec = np.linspace(start=0, stop=t_end, num=int(t_end/dt+1))
 
 #  Noise Parameters
 if (use_data):
@@ -64,22 +65,30 @@ Ux_est_pf, Uy_est_pf, r_est_pf, s_, Ux_, Uy_, r_, Sigma_pf = Simulator(filt, mu,
 # Ux_est_ekf_delay_sim, Uy_est_ekf_delay_sim, r_est_ekf_delay_sim, s_, Ux_, Uy_, r_, Sigma_ekf = Simulator(filt, mu, sigma, Q, R, path, True, False, dt, t_end, data=data)
 # filt = ExtendedKalmanFilter(Q, R, dt, veh, ftire, rtire)
 # Ux_est_ekf_delay_both, Uy_est_ekf_delay_both, r_est_ekf_delay_both, s_, Ux_, Uy_, r_, Sigma_ekf = Simulator(filt, mu, sigma, Q, R, path, True, True, dt, t_end, data=data)
-# plot_delay(s_, Ux_, Ux_est_ekf_delay_sim, Ux_est_ekf_delay_both, Uy_, Uy_est_ekf_delay_sim, Uy_est_ekf_delay_both, r_, r_est_ekf_delay_sim, r_est_ekf_delay_both)
+# plot_delay(t_vec, Ux_, Ux_est_ekf_delay_sim, Ux_est_ekf_delay_both, Uy_, Uy_est_ekf_delay_sim, Uy_est_ekf_delay_both, r_, r_est_ekf_delay_sim, r_est_ekf_delay_both)
 
 
 # Plotting
 #plot_all(s_, Ux_, Ux_est_ekf, Ux_est_iekf, Ux_est_ukf, Ux_est_pf, Uy_, Uy_est_ekf, Uy_est_iekf, Uy_est_ukf, Uy_est_pf, r_, r_est_ekf, r_est_iekf, r_est_ukf, r_est_pf)
 
 # This one is just for testing to avoid running all filters
-#plot_all_and_error(s_, Ux_, Ux_est_ekf, Ux_est_ekf, Ux_est_ekf, Ux_est_ekf, Uy_, Uy_est_ekf, Uy_est_ekf, Uy_est_ekf, Uy_est_ekf, r_, r_est_ekf, r_est_ekf, r_est_ekf, r_est_ekf)
+#plot_all_and_error(t_vec, Ux_, Ux_est_ekf, Ux_est_ekf, Ux_est_ekf, Ux_est_ekf, Uy_, Uy_est_ekf, Uy_est_ekf, Uy_est_ekf, Uy_est_ekf, r_, r_est_ekf, r_est_ekf, r_est_ekf, r_est_ekf)
 
 # The main plotting function (for figure labelling uncomment some lines inside this)
-plot_all_and_error(s_, Ux_, Ux_est_ekf, Ux_est_iekf, Ux_est_ukf, Ux_est_pf, Uy_, Uy_est_ekf, Uy_est_iekf, Uy_est_ukf, Uy_est_pf, r_, r_est_ekf, r_est_iekf, r_est_ukf, r_est_pf)
+plot_all_and_error(t_vec, Ux_, Ux_est_ekf, Ux_est_iekf, Ux_est_ukf, Ux_est_pf, Uy_, Uy_est_ekf, Uy_est_iekf, Uy_est_ukf, Uy_est_pf, r_, r_est_ekf, r_est_iekf, r_est_ukf, r_est_pf)
 
 # This plots a single run with confidence intervals
-#plot_one(s_, Ux_, Ux_est_ekf, Uy_, Uy_est_ekf, r_, r_est_ekf, Sigma_ekf)
+#plot_one(t_vec, Ux_, Ux_est_ekf, Uy_, Uy_est_ekf, r_, r_est_ekf, Sigma_ekf)
 
 # Not used
 #plot_error(s_, Ux_, Ux_est_ekf, Uy_, Uy_est_ekf, r_, r_est_ekf)
+
+
+# here's what I did
+
+# allfilters_data - use_data = True, delays = False, uncomment correct filename in plot script
+# allfilters_sim - use_data = False (adjust filter function), delays = False, uncomment filename
+# ekf_w_ci_data - use_data = True, delays = False, uncomment filename
+# ekf_w_ci_sim - use_data = False (adjust filter function), delays = False, uncomment filename
 
 
